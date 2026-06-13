@@ -240,11 +240,11 @@ tr:hover td{background:#f9fefe;}
       <div class="login-sub">Surgical Site Infection Surveillance · IPC Unit</div>
     </div>
     <div class="login-body">
-      <div class="login-err" id="loginErr">Username atau kata laluan salah.</div>
+      <div class="login-err" id="loginErr">Invalid department or password. Please try again.</div>
       <div class="fg">
-        <label>Jabatan / Role</label>
+        <label>Department / Role</label>
         <select id="loginDept">
-          <option value="">-- Pilih --</option>
+          <option value="">-- Select --</option>
           <option value="coordinator">🔑 Coordinator (IPC)</option>
           <option value="Surgical">🏥 Surgical</option>
           <option value="OMFS">🦷 OMFS (Oral & Maxillofacial)</option>
@@ -253,12 +253,16 @@ tr:hover td{background:#f9fefe;}
         </select>
       </div>
       <div class="fg">
-        <label>Kata Laluan</label>
+        <label>Password</label>
         <input type="password" id="loginPass" placeholder="••••••••" onkeydown="if(event.key==='Enter')doLogin()">
+        <label style="display:flex;align-items:center;gap:6px;margin-top:6px;font-size:.74rem;color:var(--muted);cursor:pointer;font-weight:400;">
+          <input type="checkbox" onchange="document.getElementById('loginPass').type=this.checked?'text':'password'" style="accent-color:var(--teal);width:14px;height:14px;">
+          Show password
+        </label>
       </div>
-      <button class="btn-login" onclick="doLogin()">Log Masuk</button>
+      <button class="btn-login" onclick="doLogin()">Log In</button>
     </div>
-    <div class="login-footer">HTPN · IPC Unit · Versi 1.0<br>Hubungi coordinator untuk reset kata laluan</div>
+    <div class="login-footer">HTPN · IPC Unit · Version 1.0<br>Contact coordinator to reset password</div>
   </div>
 </div>
 
@@ -276,7 +280,7 @@ tr:hover td{background:#f9fefe;}
       <span id="userLabel" style="font-size:.72rem;font-weight:500;">-</span>
     </div>
     <button onclick="confirmLogout()" style="background:#c0392b;color:#fff;border:none;border-radius:16px;padding:4px 10px;font-size:.72rem;font-weight:600;cursor:pointer;display:flex;align-items:center;gap:3px;">
-      ↩ Log Keluar
+      ↩ Log Out
     </button>
   </div>
 </div>
@@ -285,11 +289,11 @@ tr:hover td{background:#f9fefe;}
 
 <div class="nav-tabs">
   <button class="nav-tab active" onclick="showPage('dashboard',this)">📊 Dashboard</button>
-  <button class="nav-tab" onclick="showPage('entry',this)">➕ Entry Kes</button>
+  <button class="nav-tab" onclick="showPage('entry',this)">➕ New Case</button>
   <button class="nav-tab" onclick="showPage('ssi',this)">🔴 Update SSI <span id="ssiPendingBadge" style="display:none;background:#c0392b;color:#fff;border-radius:10px;padding:1px 6px;font-size:.62rem;margin-left:3px;">0</span></button>
-  <button class="nav-tab" onclick="showPage('records',this)">🗂 Semua Kes</button>
-  <button class="nav-tab" onclick="showPage('rujukan',this)">📚 Rujukan</button>
-  <button class="nav-tab" id="settingsTab" onclick="showPage('settings',this)" style="display:none;">⚙️ Tetapan</button>
+  <button class="nav-tab" onclick="showPage('records',this)">🗂 All Cases</button>
+  <button class="nav-tab" onclick="showPage('rujukan',this)">📚 References</button>
+  <button class="nav-tab" id="settingsTab" onclick="showPage('settings',this)" style="display:none;">⚙️ Settings</button>
 </div>
 
 <!-- ══════════ DASHBOARD ══════════ -->
@@ -302,18 +306,18 @@ tr:hover td{background:#f9fefe;}
         <strong style="color:var(--red);">⚠️ <span id="unsyncedCount">0</span> kes belum masuk Google Sheets!</strong><br>
         <span style="color:#666;font-size:.72rem;">Data sudah tersimpan dalam app tetapi belum dihantar ke Sheets. Klik untuk sync semula.</span>
       </div>
-      <button class="btn btn-danger btn-sm" onclick="showPage('settings',document.querySelector('[onclick*=settings]'));retrySyncAll()">🔄 Sync Semula Sekarang</button>
+      <button class="btn btn-danger btn-sm" onclick="showPage('settings',document.querySelector('[onclick*=settings]'));retrySyncAll()">🔄 Sync Now</button>
     </div>
   </div>
 
   <div class="abar">
-    <span style="font-weight:600;font-size:.86rem;">Papan Pemantauan SSI</span>
+    <span style="font-weight:600;font-size:.86rem;">SSI Surveillance Dashboard</span>
     <div style="margin-left:auto;display:flex;gap:7px;">
       <select id="dashYear" onchange="renderDashboard()" style="padding:5px 9px;border:1px solid var(--border);border-radius:6px;font-size:.76rem;">
         <option>2024</option><option>2025</option><option selected>2026</option><option>2027</option>
       </select>
       <select id="dashDept" onchange="renderDashboard()" style="padding:5px 9px;border:1px solid var(--border);border-radius:6px;font-size:.76rem;">
-        <option value="">Semua Jabatan</option>
+        <option value="">All Departments</option>
       </select>
       <button id="btnPullSheets" class="btn btn-green btn-sm" onclick="pullAllCases()" style="display:none;" title="Refresh semua data dari Google Sheets">🔄 Refresh dari Sheets</button>
       <button class="btn btn-outline btn-sm" onclick="exportCSV()">⬇ CSV</button>
@@ -322,64 +326,29 @@ tr:hover td{background:#f9fefe;}
 
   <div class="stats" id="statsGrid">
     <div class="stat"><div class="stat-v" id="ds-total">0</div><div class="stat-l">Total Surgery</div></div>
-    <div class="stat red"><div class="stat-v" id="ds-ssi">0</div><div class="stat-l">Kes SSI</div></div>
+    <div class="stat red"><div class="stat-v" id="ds-ssi">0</div><div class="stat-l">SSI Cases</div></div>
     <div class="stat amber"><div class="stat-v" id="ds-rate">0.0%</div><div class="stat-l">SSI Rate</div></div>
-    <div class="stat green"><div class="stat-v" id="ds-depts">0</div><div class="stat-l" id="ds-depts-label">Jabatan Dipantau</div></div>
+    <div class="stat green"><div class="stat-v" id="ds-depts">0</div><div class="stat-l" id="ds-depts-label">Departments Monitored</div></div>
   </div>
 
   <!-- Coordinator: 2 bar charts | Dept user: monitored case list -->
   <div id="coordCharts" style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
     <div class="card">
-      <div class="card-title" id="leftChartTitle">SSI Rate Mengikut Jabatan</div>
-      <div class="bars" id="deptBars"><div class="empty"><div class="ei">📊</div><p>Tiada data</p></div></div>
+      <div class="card-title" id="leftChartTitle">SSI Rate by Department</div>
+      <div class="bars" id="deptBars"><div class="empty"><div class="ei">📊</div><p>No data</p></div></div>
     </div>
     <div class="card">
-      <div class="card-title">Kes SSI Mengikut Jenis Surgery</div>
-      <div class="bars" id="surgBars"><div class="empty"><div class="ei">🔪</div><p>Tiada data</p></div></div>
+      <div class="card-title">SSI Cases by Surgery Type</div>
+      <div class="bars" id="surgBars"><div class="empty"><div class="ei">🔪</div><p>No data</p></div></div>
     </div>
   </div>
 
-  <!-- Dept user: case list replaces charts -->
-  <div id="deptCaseList" style="display:none;">
-    <div class="card">
-      <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;margin-bottom:12px;">
-        <div>
-          <div style="font-size:.84rem;font-weight:700;" id="deptCaseTitle">Kes Dalam Pantauan</div>
-          <div style="font-size:.70rem;color:var(--muted);margin-top:2px;" id="deptCaseSubtitle">Semua kes yang dipantau oleh jabatan anda</div>
-        </div>
-        <select id="deptMonFilterStatus" onchange="renderDashboard()" style="padding:5px 9px;border:1px solid var(--border);border-radius:6px;font-size:.74rem;">
-          <option value="">Semua Status</option>
-          <option value="active">⏳ Dalam Pantauan</option>
-          <option value="ssi">🔴 Ada SSI</option>
-          <option value="done">✅ Selesai (Tiada SSI)</option>
-        </select>
-      </div>
-      <div class="tw">
-        <table>
-          <thead>
-            <tr>
-              <th>#</th>
-              <th>Surgery Performed</th>
-              <th>No. IC</th>
-              <th>Tarikh Surgery</th>
-              <th>Prosedur</th>
-              <th>Surveillance</th>
-              <th>Baki Hari</th>
-              <th>Status</th>
-              <th></th>
-            </tr>
-          </thead>
-          <tbody id="deptCaseTbl"></tbody>
-        </table>
-      </div>
-    </div>
-  </div>
 
   <div class="card">
-    <div class="card-title">Kes SSI Terkini</div>
+    <div class="card-title">Recent SSI Cases</div>
     <div class="tw">
       <table>
-        <thead><tr><th>Nama</th><th>No. IC</th><th>Jabatan</th><th>Tarikh</th><th>Prosedur</th><th>SSI</th><th>Organisma</th><th></th></tr></thead>
+        <thead><tr><th>Name</th><th>IC No.</th><th>Department</th><th>Date</th><th>Procedure</th><th>SSI</th><th>Organism</th><th></th></tr></thead>
         <tbody id="recentTbl"></tbody>
       </table>
     </div>
@@ -388,8 +357,8 @@ tr:hover td{background:#f9fefe;}
   <!-- ── RISK FACTORS ── -->
   <div id="riskFactorsSection">
     <div style="font-weight:600;font-size:.86rem;margin-bottom:10px;margin-top:4px;">
-      ⚠️ Analisis Faktor Risiko SSI
-      <span style="font-size:.70rem;font-weight:400;color:var(--muted);margin-left:6px;">berdasarkan kes dalam tempoh yang dipilih</span>
+      ⚠️ SSI Risk Factor Analysis
+      <span style="font-size:.70rem;font-weight:400;color:var(--muted);margin-left:6px;">based on cases in selected period</span>
     </div>
 
     <!-- PRE-OPERATIVE -->
@@ -415,28 +384,28 @@ tr:hover td{background:#f9fefe;}
 <!-- ══════════ ENTRY KES ══════════ -->
 <div class="page" id="page-entry">
   <div class="abar">
-    <span style="font-weight:600;font-size:.86rem;">Entry Kes Surgery Baru</span>
+    <span style="font-weight:600;font-size:.86rem;">New Surgery Case Entry</span>
     <div style="margin-left:auto;display:flex;gap:7px;">
-      <button class="btn btn-outline btn-sm" onclick="clearForm()">🗑 Kosong</button>
+      <button class="btn btn-outline btn-sm" onclick="clearForm()">🗑 Clear</button>
     </div>
   </div>
   <div id="saveAlert" style="display:none;" class="alert alert-ok">Kes disimpan!</div>
 
   <!-- Hospital & Dept -->
   <div class="card">
-    <div class="card-title">Hospital &amp; Jabatan</div>
+    <div class="card-title">Hospital &amp; Department</div>
     <div class="grid2">
       <div class="fg"><label>Hospital</label><input type="text" id="f_hosp" value="Hospital Tengku Permaisuri Norashikin (HTPN)"></div>
-      <div class="fg"><label>Jabatan *</label><select id="f_dept"><option value="">-- Pilih --</option></select></div>
+      <div class="fg"><label>Department *</label><select id="f_dept"><option value="">-- Pilih --</option></select></div>
     </div>
   </div>
 
   <!-- Patient -->
   <div class="card">
-    <div class="card-title">Maklumat Pesakit</div>
+    <div class="card-title">Patient Information</div>
     <div class="grid2">
-      <div class="fg"><label>Nama Penuh *</label><input type="text" id="f_name"></div>
-      <div class="fg"><label>Bangsa</label>
+      <div class="fg"><label>Name Penuh *</label><input type="text" id="f_name"></div>
+      <div class="fg"><label>Race</label>
         <select id="f_race">
           <option value="">-- Pilih --</option>
           <option>Melayu</option>
@@ -454,46 +423,46 @@ tr:hover td{background:#f9fefe;}
       </div>
     </div>
     <div class="grid4" style="margin-top:9px;">
-      <div class="fg"><label>Umur</label><input type="number" id="f_age" min="0" max="130"></div>
-      <div class="fg"><label>Jantina</label>
+      <div class="fg"><label>Age</label><input type="number" id="f_age" min="0" max="130"></div>
+      <div class="fg"><label>Gender</label>
         <select id="f_gender">
           <option value="">--</option><option>Male</option><option>Female</option>
         </select>
       </div>
-      <div class="fg"><label>No. IC / Pasport</label><input type="text" id="f_mrn"></div>
+      <div class="fg"><label>IC No. / Pasport</label><input type="text" id="f_mrn"></div>
       <div class="fg"><label>No. Hubungi</label><input type="tel" id="f_contact"></div>
     </div>
   </div>
 
   <!-- Surgery Info -->
   <div class="card">
-    <div class="card-title">Maklumat Pembedahan</div>
+    <div class="card-title">Surgery Information</div>
     <div class="grid4">
       <div class="fg">
-        <label>Tarikh Surgery *</label>
+        <label>Date Surgery *</label>
         <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap;">
           <input type="date" id="f_sdate" style="flex:1;" onchange="checkDateWarning()">
-          <button type="button" class="btn btn-outline btn-sm" onclick="setToday()" title="Set tarikh hari ini">📅 Hari Ini</button>
-          <button type="button" class="btn btn-outline btn-sm" onclick="setYesterday()" title="Set tarikh semalam">⬅ Semalam</button>
+          <button type="button" class="btn btn-outline btn-sm" onclick="setToday()" title="Set tarikh hari ini">📅 Today</button>
+          <button type="button" class="btn btn-outline btn-sm" onclick="setYesterday()" title="Set tarikh semalam">⬅ Yesterday</button>
         </div>
         <div id="dateWarning" style="display:none;margin-top:4px;padding:5px 9px;background:#fef5e7;border:1px solid #f5cba7;border-radius:6px;font-size:.72rem;color:#e67e22;">
-          ⚠ Tarikh yang dipilih bukan hari ini — pastikan tarikh operation adalah betul.
+          ⚠ Selected date is not today — please ensure the operation date is correct.
         </div>
       </div>
-      <div class="fg"><label>Masa Mula</label><input type="time" id="f_tstart" onchange="calcDur()" oninput="calcDur()"></div>
-      <div class="fg"><label>Masa Tamat</label><input type="time" id="f_tend" onchange="calcDur()" oninput="calcDur()"></div>
+      <div class="fg"><label>Start Time</label><input type="time" id="f_tstart" onchange="calcDur()" oninput="calcDur()"></div>
+      <div class="fg"><label>End Time</label><input type="time" id="f_tend" onchange="calcDur()" oninput="calcDur()"></div>
       <div class="fg"><label>Tempoh (min) — Auto</label><input type="number" id="f_dur" min="0" placeholder="Auto-kira..." style="background:#f0f4f4;color:var(--teal);font-weight:600;"></div>
     </div>
 
     <!-- Surgery Performed — KEY FIELD -->
     <div class="grid2" style="margin-top:9px;">
       <div class="fg">
-        <label>Surgery Performed (Kategori) *</label>
+        <label>Surgery Performed (Category) *</label>
         <div style="display:flex;gap:5px;">
           <select id="f_surgPerf" style="flex:1;" onchange="onSurgPerfChange()">
             <option value="">-- Pilih atau tambah baru --</option>
           </select>
-          <button type="button" class="btn btn-green btn-sm" onclick="openAddSurg()" title="Tambah jenis baru">+ Baru</button>
+          <button type="button" class="btn btn-green btn-sm" onclick="openAddSurg()" title="Add jenis baru">+ Baru</button>
         </div>
       </div>
       <div class="fg">
@@ -524,7 +493,7 @@ tr:hover td{background:#f9fefe;}
     </div>
 
     <div class="fg" style="margin-top:9px;">
-      <label>Tempoh Surveillance</label>
+      <label>Surveillance Period</label>
       <div class="chk-grp">
         <label class="chk-item"><input type="radio" name="surv" value="30 DAYS"> 30 Hari</label>
         <label class="chk-item"><input type="radio" name="surv" value="90 DAYS" checked> 90 Hari</label>
@@ -538,7 +507,7 @@ tr:hover td{background:#f9fefe;}
   <div class="card">
     <div class="grid2">
       <div class="fg"><label>Diagnosis</label><input type="text" id="f_diag"></div>
-      <div class="fg"><label>Tarikh Masuk Wad</label><input type="date" id="f_admit"></div>
+      <div class="fg"><label>Date Masuk Wad</label><input type="date" id="f_admit"></div>
     </div>
     <div class="grid3" style="margin-top:9px;">
       <div class="fg"><label>BMI</label><input type="number" id="f_bmi" step="0.1"></div>
@@ -648,45 +617,45 @@ tr:hover td{background:#f9fefe;}
   <div id="batchInfo" style="display:none;margin-bottom:12px;">
     <div style="background:var(--pre);border:1px solid var(--border);border-radius:8px;padding:10px 14px;font-size:.78rem;">
       <strong style="color:var(--teal);">📋 Mod Entry Beramai:</strong>
-      Tarikh surgery: <span id="batchDate" style="font-weight:700;color:var(--teal);"></span> —
+      Date surgery: <span id="batchDate" style="font-weight:700;color:var(--teal);"></span> —
       <span id="batchCount" style="font-weight:700;color:var(--red);">0</span> kes disimpan untuk tarikh ini.
-      <button type="button" class="btn btn-outline btn-sm" onclick="clearBatch()" style="margin-left:8px;">✕ Reset Tarikh</button>
+      <button type="button" class="btn btn-outline btn-sm" onclick="clearBatch()" style="margin-left:8px;">✕ Reset Date</button>
     </div>
   </div>
 
   <div style="display:flex;gap:8px;justify-content:flex-end;margin-bottom:28px;flex-wrap:wrap;">
-    <button class="btn btn-outline" onclick="clearForm()">🗑 Kosongkan</button>
-    <button class="btn btn-outline btn-sm" id="saveAddBtn" onclick="saveCase(true)" style="background:#fff;color:var(--teal2);border-color:var(--teal2);">💾 Simpan + Tambah Kes Lain (Tarikh Sama)</button>
-    <button class="btn btn-primary" id="saveBtn" onclick="saveCase(false)">💾 Simpan &amp; Selesai</button>
+    <button class="btn btn-outline" onclick="clearForm()">🗑 Clearkan</button>
+    <button class="btn btn-outline btn-sm" id="saveAddBtn" onclick="saveCase(true)" style="background:#fff;color:var(--teal2);border-color:var(--teal2);">💾 Save + Add Kes Lain (Date Sama)</button>
+    <button class="btn btn-primary" id="saveBtn" onclick="saveCase(false)">💾 Save &amp; Done</button>
   </div>
 </div>
 
 <!-- ══════════ SSI UPDATE ══════════ -->
 <div class="page" id="page-ssi">
   <div class="abar">
-    <span style="font-weight:600;font-size:.86rem;">🔴 Update SSI — Kes Dalam Pantauan</span>
+    <span style="font-weight:600;font-size:.86rem;">🔴 Update SSI — Kes Under Surveillance</span>
   </div>
 
   <div class="alert alert-info">
-    Senarai kes surgery yang <strong>masih dalam tempoh surveillance</strong>. Klik <strong>Update SSI</strong> jika SSI berlaku pada kes tersebut.
+    Cases still within the <strong>surveillance period</strong>. Click <strong>Update SSI</strong> if an SSI occurs.
   </div>
 
   <!-- Filter -->
   <div class="card">
     <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;">
       <div class="fg" style="flex-direction:row;align-items:center;gap:6px;">
-        <label style="white-space:nowrap;font-size:.76rem;font-weight:500;">Jabatan:</label>
+        <label style="white-space:nowrap;font-size:.76rem;font-weight:500;">Department:</label>
         <select id="ssiFilterDept" onchange="renderSSIPage()" style="padding:5px 9px;border:1px solid var(--border);border-radius:6px;font-size:.76rem;"></select>
       </div>
       <div class="fg" style="flex-direction:row;align-items:center;gap:6px;">
         <label style="white-space:nowrap;font-size:.76rem;font-weight:500;">Status:</label>
         <select id="ssiFilterStatus" onchange="renderSSIPage()" style="padding:5px 9px;border:1px solid var(--border);border-radius:6px;font-size:.76rem;">
-          <option value="pending">Dalam Pantauan (Belum SSI)</option>
-          <option value="ssi">Sudah Ada SSI</option>
+          <option value="pending">Under Surveillance (Belum SSI)</option>
+          <option value="ssi">SSI Confirmed</option>
           <option value="all">Semua</option>
         </select>
       </div>
-      <input type="text" id="ssiFilterSearch" oninput="renderSSIPage()" placeholder="Cari nama / No. IC..." style="padding:5px 9px;border:1px solid var(--border);border-radius:6px;font-size:.76rem;width:160px;">
+      <input type="text" id="ssiFilterSearch" oninput="renderSSIPage()" placeholder="Search name / IC No..." style="padding:5px 9px;border:1px solid var(--border);border-radius:6px;font-size:.76rem;width:160px;">
     </div>
   </div>
 
@@ -694,9 +663,9 @@ tr:hover td{background:#f9fefe;}
     <div class="tw">
       <table>
         <thead><tr>
-          <th>#</th><th>Nama</th><th>No. IC</th><th>Jabatan</th>
-          <th>Tarikh Surgery</th><th>Surgery Performed</th>
-          <th>Surveillance</th><th>Hari Tinggal</th><th>Status SSI</th><th>Tindakan</th>
+          <th>#</th><th>Name</th><th>IC No.</th><th>Department</th>
+          <th>Date Surgery</th><th>Surgery Performed</th>
+          <th>Surveillance</th><th>Days Left</th><th>SSI Status</th><th>Action</th>
         </tr></thead>
         <tbody id="ssiTbl"></tbody>
       </table>
@@ -838,7 +807,7 @@ tr:hover td{background:#f9fefe;}
 
           <div class="fg">
             <label style="color:#8e44ad;">Catatan / Management</label>
-            <textarea id="su_notes" rows="2" placeholder="Tindakan, rawatan, atau maklumat tambahan..."></textarea>
+            <textarea id="su_notes" rows="2" placeholder="Action, rawatan, atau maklumat tambahan..."></textarea>
           </div>
         </div>
 
@@ -846,9 +815,9 @@ tr:hover td{background:#f9fefe;}
       </div>
     </div>
     <div class="mftr" style="background:#f9f4ff;">
-      <button class="btn btn-outline btn-sm" onclick="closeSsiModal()">Batal</button>
+      <button class="btn btn-outline btn-sm" onclick="closeSsiModal()">Cancel</button>
       <button class="btn btn-outline btn-sm" onclick="printSsiModal()">🖨 Cetak Borang</button>
-      <button class="btn btn-sm" style="background:#8e44ad;color:#fff;" onclick="saveSsiUpdate()">🔴 Simpan SSI &amp; Sync ke Sheets</button>
+      <button class="btn btn-sm" style="background:#8e44ad;color:#fff;" onclick="saveSsiUpdate()">🔴 Save SSI &amp; Sync ke Sheets</button>
     </div>
   </div>
 </div>
@@ -856,19 +825,19 @@ tr:hover td{background:#f9fefe;}
 <!-- ══════════ RECORDS ══════════ -->
 <div class="page" id="page-records">
   <div class="abar">
-    <span style="font-weight:600;font-size:.86rem;">Semua Kes Surgery</span>
+    <span style="font-weight:600;font-size:.86rem;">All Surgery Cases</span>
     <div style="margin-left:auto;display:flex;gap:6px;flex-wrap:wrap;">
       <select id="fDept" onchange="renderRecords()" style="padding:5px 8px;border:1px solid var(--border);border-radius:6px;font-size:.74rem;"></select>
       <select id="fSSI" onchange="renderRecords()" style="padding:5px 8px;border:1px solid var(--border);border-radius:6px;font-size:.74rem;">
-        <option value="">Semua Kes</option><option value="ssi">Ada SSI Sahaja</option><option value="none">Tiada SSI</option>
+        <option value="">All Cases</option><option value="ssi">SSI Cases Only</option><option value="none">No SSI</option>
       </select>
-      <input type="text" id="fSearch" oninput="renderRecords()" placeholder="Cari nama / No. IC..." style="padding:5px 8px;border:1px solid var(--border);border-radius:6px;font-size:.74rem;width:150px;">
+      <input type="text" id="fSearch" oninput="renderRecords()" placeholder="Search name / IC No..." style="padding:5px 8px;border:1px solid var(--border);border-radius:6px;font-size:.74rem;width:150px;">
     </div>
   </div>
   <div class="card">
     <div class="tw">
       <table>
-        <thead><tr><th>#</th><th>Nama</th><th>No. IC</th><th>Jabatan</th><th>Tarikh</th><th>Surgery Performed</th><th>Prosedur</th><th>SSI</th><th>Organisma</th><th></th></tr></thead>
+        <thead><tr><th>#</th><th>Name</th><th>IC No.</th><th>Department</th><th>Date</th><th>Surgery Performed</th><th>Procedure</th><th>SSI</th><th>Organism</th><th></th></tr></thead>
         <tbody id="recTbl"></tbody>
       </table>
     </div>
@@ -878,82 +847,58 @@ tr:hover td{background:#f9fefe;}
 <!-- ══════════ RUJUKAN ══════════ -->
 <div class="page" id="page-rujukan">
   <div class="abar">
-    <span style="font-weight:600;font-size:.86rem;">📚 Rujukan &amp; Panduan SSI</span>
+    <span style="font-weight:600;font-size:.86rem;">📚 SSI References & Guidelines</span>
     <div style="margin-left:auto;display:flex;gap:7px;" id="refAddBtn" style="display:none;">
-      <button class="btn btn-primary btn-sm" onclick="openAddRef()">+ Tambah Rujukan</button>
+      <button class="btn btn-primary btn-sm" onclick="openAddRef()">+ Add Reference</button>
     </div>
   </div>
 
   <div class="alert alert-info" style="margin-bottom:12px;">
-    Akses dokumen rujukan SSI — Garis Panduan KKM, SOP Hospital, dan artikel berkaitan.
-    Klik pautan untuk buka dokumen dalam Google Drive.
-  </div>
-
-  <!-- Drive folder embed (if configured) -->
-  <div id="driveFolderSection" style="display:none;margin-bottom:14px;">
-    <div class="card">
-      <div class="card-title">📂 Google Drive — Folder Rujukan</div>
-      <iframe id="driveFolderFrame" class="drive-embed" src="" allowfullscreen></iframe>
-      <p style="font-size:.68rem;color:var(--muted);margin-top:6px;">
-        Jika folder tidak muncul, klik
-        <a id="driveFolderLink" href="#" target="_blank" style="color:var(--teal);font-weight:600;">buka di Google Drive ↗</a>
-      </p>
-    </div>
+    Access SSI reference documents — KKM Guidelines, Hospital SOPs, and related articles.
+    Click the link to open the document.
   </div>
 
   <!-- Reference list -->
   <div class="card">
-    <div class="card-title">📋 Senarai Rujukan</div>
+    <div class="card-title">📋 Reference List</div>
     <div id="refList" style="display:flex;flex-direction:column;gap:8px;"></div>
-    <div id="refEmpty" class="empty" style="display:none;"><div class="ei">📂</div><p>Tiada rujukan. Coordinator boleh tambah rujukan.</p></div>
+    <div id="refEmpty" class="empty" style="display:none;"><div class="ei">📂</div><p>No references yet. Coordinator can add references.</p></div>
   </div>
 
-  <!-- Coordinator: configure Drive folder + add refs -->
+  <!-- Coordinator: add refs -->
   <div id="refAdminSection" style="display:none;">
     <div class="card" style="border-left:4px solid var(--teal);">
-      <div class="card-title">⚙️ Tetapan Rujukan (Coordinator Sahaja)</div>
-
-      <div class="fg" style="margin-bottom:12px;">
-        <label>URL Folder Google Drive (untuk embed)</label>
-        <div style="display:flex;gap:7px;">
-          <input type="text" id="driveFolderUrl" placeholder="https://drive.google.com/drive/folders/XXXXX?usp=sharing"
-            style="flex:1;font-size:.72rem;font-family:monospace;" value="">
-          <button class="btn btn-green btn-sm" onclick="saveDriveFolder()">💾 Simpan</button>
-        </div>
-        <p style="font-size:.66rem;color:var(--muted);margin-top:4px;">
-          Untuk embed: klik kanan folder Drive → "Get link" → set to "Anyone with link" → copy URL
-        </p>
-      </div>
+      <div class="card-title">⚙️ Reference Settings (Coordinator Only)</div>
 
       <div style="border-top:1px solid var(--border);padding-top:12px;">
-        <div style="font-size:.72rem;font-weight:600;color:var(--teal);margin-bottom:10px;">+ Tambah Pautan Rujukan Baru</div>
+        <div style="font-size:.72rem;font-weight:600;color:var(--teal);margin-bottom:10px;">+ Add New Reference Link</div>
         <div class="grid2" style="margin-bottom:8px;">
           <div class="fg">
-            <label>Tajuk Dokumen *</label>
+            <label>Document Title *</label>
             <input type="text" id="ref_title" placeholder="e.g. SSI Prevention Guideline 2023 KKM">
           </div>
           <div class="fg">
-            <label>Kategori</label>
+            <label>Category</label>
             <select id="ref_cat">
-              <option value="Guideline">📘 Guideline / Panduan</option>
-              <option value="SOP">📋 SOP / Prosedur</option>
-              <option value="Article">📄 Artikel / Jurnal</option>
-              <option value="Form">📝 Borang / Form</option>
-              <option value="Other">📎 Lain-lain</option>
+              <option value="Guideline">📘 Guideline</option>
+              <option value="SOP">📋 SOP / Procedure</option>
+              <option value="Article">📄 Article / Journal</option>
+              <option value="Form">📝 Form</option>
+              <option value="Other">📎 Other</option>
             </select>
           </div>
         </div>
         <div class="grid2" style="margin-bottom:8px;">
           <div class="fg">
-            <label>URL Dokumen (Google Drive / Link) *</label>
+            <label>Document URL (Google Drive / Link) *</label>
             <input type="text" id="ref_url" placeholder="https://drive.google.com/file/d/XXXXX/view">
           </div>
           <div class="fg">
-            <label>Penerangan (optional)</label>
-            <input type="text" id="ref_desc" placeholder="e.g. Versi 2023, KKM Malaysia">
+            <label>Description (optional)</label>
+            <input type="text" id="ref_desc" placeholder="e.g. Version 2023, KKM Malaysia">
           </div>
         </div>
-        <button class="btn btn-primary btn-sm" onclick="addRef()">+ Tambah Rujukan</button>
+        <button class="btn btn-primary btn-sm" onclick="addRef()">+ Add Reference</button>
         <div id="ref_msg" style="margin-top:6px;font-size:.74rem;"></div>
       </div>
     </div>
@@ -965,31 +910,31 @@ tr:hover td{background:#f9fefe;}
 
   <!-- Sheets Sync Status -->
   <div class="card" style="border-left:4px solid var(--green);">
-    <div class="card-title">🔗 Status Sync ke Google Sheets</div>
+    <div class="card-title">🔗 Google Sheets Sync Status</div>
 
     <!-- Status boxes -->
     <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin-bottom:14px;" id="syncStatusGrid">
       <div style="background:var(--pre);border-radius:8px;padding:10px;text-align:center;">
         <div style="font-size:1.4rem;font-weight:700;font-family:'DM Mono',monospace;color:var(--teal);" id="syncTotal">0</div>
-        <div style="font-size:.66rem;color:var(--muted);margin-top:2px;">Total Kes Tempatan</div>
+        <div style="font-size:.66rem;color:var(--muted);margin-top:2px;">Total Local Cases</div>
       </div>
       <div style="background:#eafaf1;border-radius:8px;padding:10px;text-align:center;">
         <div style="font-size:1.4rem;font-weight:700;font-family:'DM Mono',monospace;color:var(--green);" id="syncOkCount">0</div>
-        <div style="font-size:.66rem;color:var(--muted);margin-top:2px;">✅ Berjaya Sync</div>
+        <div style="font-size:.66rem;color:var(--muted);margin-top:2px;">✅ Successfully Synced</div>
       </div>
       <div style="background:#fdecea;border-radius:8px;padding:10px;text-align:center;">
         <div style="font-size:1.4rem;font-weight:700;font-family:'DM Mono',monospace;color:var(--red);" id="syncFailCount">0</div>
-        <div style="font-size:.66rem;color:var(--muted);margin-top:2px;">❌ Gagal / Belum Sync</div>
+        <div style="font-size:.66rem;color:var(--muted);margin-top:2px;">❌ Failed / Not Synced</div>
       </div>
     </div>
 
     <!-- Pending sync warning -->
     <div id="pendingSyncWarn" style="display:none;background:#fdecea;border:1px solid #f5b7b1;border-radius:8px;padding:10px 13px;margin-bottom:12px;font-size:.78rem;">
-      <strong style="color:var(--red);">⚠️ Ada kes yang belum masuk Google Sheets!</strong><br>
-      <span style="color:#666;">Data sudah tersimpan dalam app. Klik untuk hantar semula ke Sheets.</span>
+      <strong style="color:var(--red);">⚠️ Cases not yet sent to Google Sheets!</strong><br>
+      <span style="color:#666;">Data is saved in the app. Click to resend to Sheets.</span>
       <div style="margin-top:8px;display:flex;gap:7px;flex-wrap:wrap;">
-        <button class="btn btn-danger btn-sm" onclick="retrySyncAll()" id="retryBtn">🔄 Cuba Sync Semula</button>
-        <button class="btn btn-outline btn-sm" onclick="diagnoseSyncFail()">🔍 Diagnosis Kenapa Gagal</button>
+        <button class="btn btn-danger btn-sm" onclick="retrySyncAll()" id="retryBtn">🔄 Retry Sync</button>
+        <button class="btn btn-outline btn-sm" onclick="diagnoseSyncFail()">🔍 Diagnose Issue</button>
       </div>
     </div>
 
@@ -1003,37 +948,37 @@ tr:hover td{background:#f9fefe;}
         <div style="font-weight:600;color:var(--teal);margin-bottom:5px;">📋 Hasil Diagnosis:</div>
         <div id="diagStep1" style="padding:4px 8px;border-radius:5px;margin-bottom:3px;">⬜ Step 1: Test GET ping...</div>
         <div id="diagStep2" style="padding:4px 8px;border-radius:5px;margin-bottom:3px;">⬜ Step 2: Test POST (hantar data ujian)...</div>
-        <div id="diagStep3" style="padding:4px 8px;border-radius:5px;margin-bottom:3px;">⬜ Step 3: Semak response Apps Script...</div>
+        <div id="diagStep3" style="padding:4px 8px;border-radius:5px;margin-bottom:3px;">⬜ Step 3: Check response Apps Script...</div>
         <div id="diagResult" style="margin-top:6px;padding:8px 10px;border-radius:6px;background:#fff;border:1px solid var(--border);font-family:monospace;font-size:.68rem;display:none;word-break:break-all;"></div>
       </div>
 
       <div style="display:flex;gap:7px;flex-wrap:wrap;">
-        <button class="btn btn-green btn-sm" onclick="testConnDetailed()">🔌 Test Sambungan</button>
-        <button class="btn btn-amber btn-sm" onclick="runFullDiagnosis()">🔍 Diagnosis Penuh (POST)</button>
-        <button class="btn btn-outline btn-sm" onclick="pullSurgTypes()">🔄 Sync Jenis Surgery</button>
+        <button class="btn btn-green btn-sm" onclick="testConnDetailed()">🔌 Test Connection</button>
+        <button class="btn btn-amber btn-sm" onclick="runFullDiagnosis()">🔍 Full Diagnosis (POST)</button>
+        <button class="btn btn-outline btn-sm" onclick="pullSurgTypes()">🔄 Sync Surgery Types</button>
       </div>
     </div>
 
     <!-- URL field (hidden by default, show only if needed) -->
     <details style="margin-top:6px;" id="urlDetails">
-      <summary style="font-size:.72rem;color:var(--muted);cursor:pointer;padding:4px 0;">⚙️ Tukar Apps Script URL (jika URL perlu dikemaskini)</summary>
+      <summary style="font-size:.72rem;color:var(--muted);cursor:pointer;padding:4px 0;">⚙️ Change Apps Script URL (if URL needs updating)</summary>
       <div style="margin-top:10px;">
         <div style="background:#fff8e1;border:1px solid #ffe082;border-radius:7px;padding:9px 11px;margin-bottom:10px;font-size:.73rem;line-height:1.6;">
-          <strong>Bila perlu update URL:</strong><br>
+          <strong>When to update URL:</strong><br>
           • Apps Script di-deploy semula (New Deployment)<br>
-          • URL lama expired atau tidak berfungsi<br><br>
-          <strong>Cara dapat URL baru:</strong><br>
+          • Old URL expired or not working<br><br>
+          <strong>How to get new URL:</strong><br>
           1. Buka Google Sheets → Extensions → Apps Script<br>
           2. Deploy → Manage deployments → Edit (pencil icon)<br>
           3. Version: New version → Deploy → copy URL baru<br>
-          4. Pastikan "Who has access: <strong>Anyone</strong>"
+          4. Ensure "Who has access: <strong>Anyone</strong>"
         </div>
         <div class="fg" style="margin-bottom:10px;">
           <label style="font-size:.72rem;">Apps Script Web App URL</label>
           <input type="text" id="scriptUrl" placeholder="https://script.google.com/macros/s/XXXXX/exec"
             style="font-size:.70rem;font-family:monospace;" oninput="onUrlChange()">
         </div>
-        <button class="btn btn-primary btn-sm" onclick="saveUrl()">💾 Simpan URL Baru</button>
+        <button class="btn btn-primary btn-sm" onclick="saveUrl()">💾 Save New URL</button>
         <div id="urlSaveMsg" style="margin-top:5px;font-size:.73rem;"></div>
       </div>
     </details>
@@ -1041,55 +986,55 @@ tr:hover td{background:#f9fefe;}
 
   <!-- Surgery Types -->
   <div class="card">
-    <div class="card-title">🔪 Jenis Surgery (Surgery Performed)</div>
+    <div class="card-title">🔪 Surgery Types (Surgery Performed)</div>
     <div id="surgList" style="display:flex;flex-direction:column;gap:6px;margin-bottom:12px;max-height:320px;overflow-y:auto;"></div>
     <div style="background:var(--pre);border-radius:8px;padding:12px;">
-      <div style="font-size:.72rem;font-weight:600;color:var(--teal);margin-bottom:8px;">+ Tambah Jenis Surgery Baru</div>
+      <div style="font-size:.72rem;font-weight:600;color:var(--teal);margin-bottom:8px;">+ Add Jenis Surgery Baru</div>
       <div class="grid2" style="margin-bottom:8px;">
-        <div class="fg"><label>Nama Kategori *</label>
+        <div class="fg"><label>Name Kategori *</label>
           <input type="text" id="newSP" placeholder="e.g. EL OMF Elective, General Surgery...">
         </div>
-        <div class="fg"><label>Contoh Prosedur (Hint)</label>
+        <div class="fg"><label>Contoh Procedure (Hint)</label>
           <input type="text" id="newHint" placeholder="e.g. Appendicectomy / Cholecystectomy...">
         </div>
       </div>
-      <button class="btn btn-primary btn-sm" onclick="addSurgType()">+ Tambah</button>
+      <button class="btn btn-primary btn-sm" onclick="addSurgType()">+ Add</button>
     </div>
   </div>
 
   <!-- Departments -->
   <div class="card">
-    <div class="card-title">🏥 Jabatan & Kata Laluan</div>
-    <p style="font-size:.74rem;color:var(--muted);margin-bottom:10px;">Tambah jabatan baru — kata laluan default akan ditetapkan secara automatik. Tukar kata laluan selepas itu.</p>
+    <div class="card-title">🏥 Department & Password</div>
+    <p style="font-size:.74rem;color:var(--muted);margin-bottom:10px;">Add jabatan baru — password default akan ditetapkan secara automatik. Tukar password selepas itu.</p>
     <div id="deptList" style="display:flex;flex-direction:column;gap:6px;margin-bottom:12px;"></div>
     <div style="background:var(--pre);border-radius:8px;padding:12px;">
-      <div style="font-size:.72rem;font-weight:600;color:var(--teal);margin-bottom:8px;">+ Tambah Jabatan Baru</div>
+      <div style="font-size:.72rem;font-weight:600;color:var(--teal);margin-bottom:8px;">+ Add Department Baru</div>
       <div class="grid2" style="margin-bottom:8px;">
-        <div class="fg"><label>Nama Jabatan *</label>
+        <div class="fg"><label>Name Department *</label>
           <input type="text" id="newDept" placeholder="e.g. Paediatric Surgery...">
         </div>
-        <div class="fg"><label>Kata Laluan</label>
-          <input type="text" id="newDeptPw" placeholder="Minimum 6 aksara (default: dept2025)">
+        <div class="fg"><label>Password</label>
+          <input type="text" id="newDeptPw" placeholder="Minimum 6 characters (default: dept2025)">
         </div>
       </div>
-      <button class="btn btn-primary btn-sm" onclick="addDept()">+ Tambah Jabatan</button>
+      <button class="btn btn-primary btn-sm" onclick="addDept()">+ Add Department</button>
     </div>
   </div>
 
 
   <!-- Debug / Recovery (Coordinator only) -->
   <div class="card" id="debugSection" style="border-left:4px solid var(--amber);display:none;">
-    <div class="card-title" style="color:var(--amber);">🔍 Semak & Pemulihan Data</div>
-    <p style="font-size:.74rem;color:var(--muted);margin-bottom:10px;">Tengok status semua kes dalam app dan hantar semula ke Sheets.</p>
-    <button class="btn btn-amber btn-sm" onclick="runDebug()" style="margin-bottom:10px;">🔍 Semak Status Kes</button>
+    <div class="card-title" style="color:var(--amber);">🔍 Data Check & Recovery</div>
+    <p style="font-size:.74rem;color:var(--muted);margin-bottom:10px;">View all case status in app and resend to Sheets.</p>
+    <button class="btn btn-amber btn-sm" onclick="runDebug()" style="margin-bottom:10px;">🔍 Check Case Status</button>
     <div id="debugOut" style="font-size:.73rem;line-height:1.7;"></div>
   </div>
 
   <!-- Danger -->
   <div class="card" id="dangerSection" style="border-color:#fdecea;">
-    <div class="card-title" style="color:var(--red);">⚠ Zon Bahaya</div>
-    <p style="font-size:.75rem;color:var(--muted);margin-bottom:9px;">Padam semua data tempatan (tidak padam data dalam Sheets).</p>
-    <button class="btn btn-danger btn-sm" onclick="clearAll()">🗑 Padam Data Tempatan</button>
+    <div class="card-title" style="color:var(--red);">⚠ Danger Zone</div>
+    <p style="font-size:.75rem;color:var(--muted);margin-bottom:9px;">Delete all local data (does not delete data in Sheets).</p>
+    <button class="btn btn-danger btn-sm" onclick="clearAll()">🗑 Clear Local Data</button>
   </div>
 </div>
 
@@ -1122,21 +1067,21 @@ tr:hover td{background:#f9fefe;}
 <!-- ADD SURGERY TYPE MODAL -->
 <div class="overlay" id="addSurgOv">
   <div class="modal" style="max-width:460px;">
-    <div class="mhdr"><h2>+ Tambah Jenis Surgery Baru</h2><button class="xbtn" onclick="closeAddSurg()">✕</button></div>
+    <div class="mhdr"><h2>+ Add Jenis Surgery Baru</h2><button class="xbtn" onclick="closeAddSurg()">✕</button></div>
     <div class="mbdy">
       <div class="fg" style="margin-bottom:10px;">
-        <label>Surgery Performed (Kategori) *</label>
+        <label>Surgery Performed (Category) *</label>
         <input type="text" id="as_sp" placeholder="e.g. Minor Oral Surgery, General Surgery...">
       </div>
       <div class="fg">
-        <label>Contoh Prosedur (Hint — optional)</label>
+        <label>Contoh Procedure (Hint — optional)</label>
         <input type="text" id="as_hint" placeholder="e.g. Appendicectomy / Cholecystectomy...">
       </div>
       <div id="as_msg" style="margin-top:8px;font-size:.75rem;"></div>
     </div>
     <div class="mftr">
-      <button class="btn btn-outline btn-sm" onclick="closeAddSurg()">Batal</button>
-      <button class="btn btn-primary btn-sm" onclick="confirmAddSurg()">💾 Simpan</button>
+      <button class="btn btn-outline btn-sm" onclick="closeAddSurg()">Cancel</button>
+      <button class="btn btn-primary btn-sm" onclick="confirmAddSurg()">💾 Save</button>
     </div>
   </div>
 </div>
@@ -1184,7 +1129,7 @@ function showPage(id,btn){
   if(id==='records') renderRecords();
   if(id==='ssi') renderSSIPage();
   if(id==='settings') renderSettings();
-  if(id==='rujukan') renderRujukan();
+  if(id==='rujukan') renderReferences();
 }
 
 // ═══════════ SHEETS API ═══════════
@@ -1246,7 +1191,7 @@ async function pullSurgTypes(){
       sd('surgTypes',d.types);
       renderSurgTypeDropdown(); renderSurgList();
       setSyncBar('✅ '+d.types.length+' jenis surgery dimuatkan dari Sheets','ok');
-    } else setSyncBar('⚠ Tiada data atau gagal: '+(d.error||''),'err');
+    } else setSyncBar('⚠ No data atau gagal: '+(d.error||''),'err');
   }catch(e){setSyncBar('❌ Gagal: '+e.message,'err');}
 }
 
@@ -1289,18 +1234,18 @@ function renderSurgList(){
     +'<div style="flex:1;"><div style="font-size:.80rem;font-weight:600;">'+esc(t.sp)+'</div>'
     +(t.hint?'<div style="font-size:.68rem;color:var(--muted);">'+esc(t.hint)+'</div>':'')+'</div>'
     +'<button class="btn btn-outline btn-sm" onclick="toggleEditSurg('+i+')">✏️ Edit</button>'
-    +'<button class="btn btn-danger btn-sm" onclick="delSurgType('+i+')">Padam</button>'
+    +'<button class="btn btn-danger btn-sm" onclick="delSurgType('+i+')">Delete</button>'
     +'</div>'
     +'<div id="surgEdit_'+i+'" style="display:none;margin-top:8px;padding-top:8px;border-top:1px solid var(--border);">'
     +'<div class="grid2" style="gap:8px;margin-bottom:7px;">'
-    +'<div class="fg"><label>Nama Kategori</label>'
+    +'<div class="fg"><label>Name Kategori</label>'
     +'<input type="text" id="sesp_'+i+'" value="'+esc(t.sp)+'"></div>'
-    +'<div class="fg"><label>Contoh Prosedur (Hint)</label>'
+    +'<div class="fg"><label>Contoh Procedure (Hint)</label>'
     +'<input type="text" id="sehint_'+i+'" value="'+esc(t.hint||'')+'"></div>'
     +'</div>'
     +'<div style="display:flex;gap:6px;">'
-    +'<button class="btn btn-primary btn-sm" onclick="saveSurgEdit('+i+')">💾 Simpan</button>'
-    +'<button class="btn btn-outline btn-sm" onclick="toggleEditSurg('+i+')">Batal</button>'
+    +'<button class="btn btn-primary btn-sm" onclick="saveSurgEdit('+i+')">💾 Save</button>'
+    +'<button class="btn btn-outline btn-sm" onclick="toggleEditSurg('+i+')">Cancel</button>'
     +'</div></div>'
     +'</div>'
   ).join('');
@@ -1314,7 +1259,7 @@ function toggleEditSurg(i){
 function saveSurgEdit(i){
   const sp=document.getElementById('sesp_'+i)?.value.trim();
   const hint=document.getElementById('sehint_'+i)?.value.trim();
-  if(!sp){alert('Nama kategori tidak boleh kosong.');return;}
+  if(!sp){alert('Category name cannot be empty.');return;}
   const types=getSurgTypes();
   types[i]={...types[i],sp,hint};
   sd('surgTypes',types);
@@ -1326,9 +1271,9 @@ function saveSurgEdit(i){
 function addSurgType(){
   const sp=document.getElementById('newSP').value.trim();
   const hint=document.getElementById('newHint').value.trim();
-  if(!sp){alert('Sila isi nama kategori.');return;}
+  if(!sp){alert('Please enter category name.');return;}
   const types=getSurgTypes();
-  if(types.find(t=>t.sp===sp)){alert('Sudah wujud.');return;}
+  if(types.find(t=>t.sp===sp)){alert('Already exists.');return;}
   types.push({id:Date.now(),sp,hint});
   sd('surgTypes',types);
   document.getElementById('newSP').value='';
@@ -1338,7 +1283,7 @@ function addSurgType(){
 }
 
 function delSurgType(i){
-  if(!confirm('Padam?')) return;
+  if(!confirm('Delete?')) return;
   const t=getSurgTypes(); t.splice(i,1); sd('surgTypes',t);
   renderSurgList(); renderSurgTypeDropdown();
 }
@@ -1355,9 +1300,9 @@ async function confirmAddSurg(){
   const sp=document.getElementById('as_sp').value.trim();
   const hint=document.getElementById('as_hint').value.trim();
   const msg=document.getElementById('as_msg');
-  if(!sp){msg.innerHTML='<span style="color:var(--red)">Sila isi nama kategori.</span>';return;}
+  if(!sp){msg.innerHTML='<span style="color:var(--red)">Please enter category name.</span>';return;}
   const types=getSurgTypes();
-  if(types.find(t=>t.sp===sp)){msg.innerHTML='<span style="color:var(--red)">Sudah wujud.</span>';return;}
+  if(types.find(t=>t.sp===sp)){msg.innerHTML='<span style="color:var(--red)">Already exists.</span>';return;}
   msg.innerHTML='<span style="color:var(--teal)">⏳ Menyimpan...</span>';
   types.push({id:Date.now(),sp,hint});
   sd('surgTypes',types);
@@ -1368,7 +1313,7 @@ async function confirmAddSurg(){
       ?'<span style="color:var(--green)">✅ Disimpan &amp; sync ke Sheets!</span>'
       :'<span style="color:var(--amber)">⚠ Disimpan tempatan. Gagal sync Sheets.</span>';
   } else {
-    msg.innerHTML='<span style="color:var(--green)">✅ Disimpan dalam app.</span>';
+    msg.innerHTML='<span style="color:var(--green)">✅ Saved in app.</span>';
   }
   setTimeout(()=>{
     const sel=document.getElementById('f_surgPerf');
@@ -1443,18 +1388,18 @@ function gc(id){return document.getElementById(id)?.checked||false;}
 
 async function saveCase(addAnother=false){
   const dept=gv('f_dept'),name=gv('f_name'),sdate=gv('f_sdate'),sp=gv('f_surgPerf');
-  if(!dept){alert('Sila pilih jabatan.');return;}
-  if(!name){alert('Sila isi nama pesakit.');return;}
-  if(!sdate){alert('Sila isi tarikh surgery.');return;}
-  if(!sp){alert('Sila pilih Surgery Performed.');return;}
+  if(!dept){alert('Please select a department.');return;}
+  if(!name){alert('Please enter patient name.');return;}
+  if(!sdate){alert('Please enter surgery date.');return;}
+  if(!sp){alert('Please select Surgery Performed.');return;}
 
   // ── CONFIRMATION REMINDER ──
   const today=new Date().toISOString().split('T')[0];
   const dateDisplay=fmtD(sdate);
   const isToday=sdate===today;
   const confirmMsg = isToday
-    ? `✅ Sila semak sebelum simpan:\n\n👤 Pesakit: ${name}\n🏥 Jabatan: ${dept}\n📅 Tarikh Surgery: ${dateDisplay} (Hari Ini)\n🔪 Surgery: ${sp}\n\nAdakah maklumat ini betul?`
-    : `⚠️ PERHATIAN — Tarikh bukan hari ini!\n\n👤 Pesakit: ${name}\n🏥 Jabatan: ${dept}\n📅 Tarikh Surgery: ${dateDisplay}\n🔪 Surgery: ${sp}\n\nSila pastikan tarikh operation adalah BETUL sebelum simpan.\n\nTeruskan?`;
+    ? `✅ Please verify before saving:\n\n👤 Pesakit: ${name}\n🏥 Department: ${dept}\n📅 Date Surgery: ${dateDisplay} (Today)\n🔪 Surgery: ${sp}\n\nIs this information correct?`
+    : `⚠️ PERHATIAN — Date bukan hari ini!\n\n👤 Pesakit: ${name}\n🏥 Department: ${dept}\n📅 Date Surgery: ${dateDisplay}\n🔪 Surgery: ${sp}\n\nPlease ensure the operation date is CORRECT before saving.\n\nContinue?`;
 
   if(!confirm(confirmMsg)) return;
 
@@ -1502,10 +1447,10 @@ async function saveCase(addAnother=false){
       markSynced(c.id, false);
       setSyncBar('⚠ Tersimpan tempatan — gagal hantar ke Sheets','err');
       if(isCoordinator()){
-        al.innerHTML='✅ Disimpan dalam app. ⚠ Gagal sync ke Sheets.<br>'
-          +'<small style="color:#666">Pergi Tetapan → Cuba Sync Semula untuk hantar semula.</small>';
+        al.innerHTML='✅ Saved in app. ⚠ Failed to sync to Sheets.<br>'
+          +'<small style="color:#666">Pergi Settings → Cuba Sync Semula untuk hantar semula.</small>';
       } else {
-        al.innerHTML='✅ Data berjaya disimpan dalam app.<br>'
+        al.innerHTML='✅ Data saved successfully in app.<br>'
           +'<small style="color:#666">⚠ Penghantaran ke sistem pusat gagal. '
           +'<strong>Sila maklumkan kepada Coordinator IPC.</strong></small>'
           +'<div style="margin-top:6px;">'
@@ -1516,12 +1461,12 @@ async function saveCase(addAnother=false){
     }
   } else {
     markSynced(c.id, false);
-    al.textContent='✅ Disimpan dalam app.';
+    al.textContent='✅ Saved in app.';
     al.className='alert alert-ok';
   }
   al.style.display='block';
   setTimeout(()=>al.style.display='none',5000);
-  btn.textContent='💾 Simpan & Selesai'; btn.disabled=false;
+  btn.textContent='💾 Save & Done'; btn.disabled=false;
   const btn2=document.getElementById('saveAddBtn');
   if(btn2) btn2.disabled=false;
 
@@ -1563,7 +1508,7 @@ function clearForm(){
 async function pullAllCases(){
   const btn=document.getElementById('btnPullSheets');
   if(btn){btn.textContent='⏳ Loading...';btn.disabled=true;}
-  setSyncBar('⏳ Mengambil semua data kes dari Google Sheets...','syncing');
+  setSyncBar('⏳ Fetching all cases from Google Sheets...','syncing');
   try{
     const url=getUrl(); if(!url) throw new Error('URL tidak dijumpai');
     const r=await fetch(url+'?action=getAllCases',{
@@ -1579,10 +1524,10 @@ async function pullAllCases(){
       const unsyncedLocal=local.filter(c=>!c.synced && !sheetsIds.has(c.id));
       const merged=[...sheetsCases, ...unsyncedLocal];
       sd('cases', merged);
-      setSyncBar('✅ '+sheetsCases.length+' kes dimuatkan dari Sheets'+(unsyncedLocal.length>0?' + '+unsyncedLocal.length+' kes tempatan belum sync':''),'ok');
+      setSyncBar('✅ '+sheetsCases.length+' cases loaded from Sheets'+(unsyncedLocal.length>0?' + '+unsyncedLocal.length+' local cases not yet synced':''),'ok');
       renderDashboard();
     } else {
-      throw new Error(d.error||'Tiada data dikembalikan dari Sheets');
+      throw new Error(d.error||'No data dikembalikan dari Sheets');
     }
   } catch(e){
     setSyncBar('❌ Gagal pull dari Sheets: '+e.message,'err');
@@ -1594,7 +1539,8 @@ async function pullAllCases(){
 // ═══════════ DASHBOARD ═══════════
 function renderDashboard(){
   const yr=document.getElementById('dashYear').value;
-  document.getElementById('dashYrLbl').textContent=yr;
+  const dashYrLblEl=document.getElementById('dashYrLbl');
+  if(dashYrLblEl) dashYrLblEl.textContent=yr;
   document.getElementById('yrBadge').textContent=yr;
 
   const coord=isCoordinator();
@@ -1621,11 +1567,9 @@ function renderDashboard(){
   const pullBtn=document.getElementById('btnPullSheets');
   if(pullBtn) pullBtn.style.display=coord?'':'none';
 
-  // Show bar charts for all users; dept case list only for dept users below charts
+  // Show bar charts for all users
   const coordCharts=document.getElementById('coordCharts');
-  const deptCaseList=document.getElementById('deptCaseList');
   if(coordCharts) coordCharts.style.display='';
-  if(deptCaseList) deptCaseList.style.display=coord?'none':'block';
 
   // Data — dept user only sees own dept
   let cases=getCasesForUser().filter(c=>c.sdate&&c.sdate.startsWith(yr));
@@ -1640,119 +1584,39 @@ function renderDashboard(){
   document.getElementById('ds-total').textContent=total;
   document.getElementById('ds-ssi').textContent=ssiCases.length;
   document.getElementById('ds-rate').textContent=rate+'%';
-  // 4th stat — Jabatan Dipantau (coordinator only)
+  // 4th stat — Departments Monitored (coordinator only)
   const stat4=document.querySelector('#ds-depts')?.closest('.stat');
   const statsGrid=document.getElementById('statsGrid');
   if(coord){
     document.getElementById('ds-depts').textContent=getDepts().length;
-    document.getElementById('ds-depts-label').textContent='Jabatan Dipantau';
+    document.getElementById('ds-depts-label').textContent='Departments Monitored';
     if(stat4) stat4.style.display='';
     if(statsGrid) statsGrid.style.gridTemplateColumns='repeat(4,1fr)';
   } else {
-    // Dept user stats: Dipantau | SSI | Rate
     document.getElementById('ds-total').textContent=total;
-    const dsLbl=document.querySelector('#ds-total+.stat-l');
     if(document.getElementById('ds-total')?.nextElementSibling)
-      document.getElementById('ds-total').closest('.stat').querySelector('.stat-l').textContent='Kes Dipantau';
+      document.getElementById('ds-total').closest('.stat').querySelector('.stat-l').textContent='Cases Monitored';
     if(stat4) stat4.style.display='none';
     if(statsGrid) statsGrid.style.gridTemplateColumns='repeat(3,1fr)';
-  }
-
-  // ── Dept Case List (dept users only) ──────────────────────────
-  if(!coord){
-    const today0=new Date(); today0.setHours(0,0,0,0);
-    const titleEl=document.getElementById('deptCaseTitle');
-    const subEl=document.getElementById('deptCaseSubtitle');
-    const active=cases.filter(c=>{
-      if(c.ssiclass) return false;
-      const sd=c.surv==='30 DAYS'?30:c.surv==='365 DAYS'?365:90;
-      const sDate=new Date(c.sdate); sDate.setHours(0,0,0,0);
-      return Math.floor((today0-sDate)/86400000)<=sd;
-    }).length;
-    if(titleEl) titleEl.textContent='Kes Dalam Pantauan — '+userDept+' ('+yr+')';
-    if(subEl) subEl.textContent=total+' kes dimasuk | '+ssiCases.length+' SSI | '+active+' masih dalam surveillance';
-
-    const statusFilter=document.getElementById('deptMonFilterStatus')?.value||'';
-    let deptCases=[...cases].sort((a,b)=>new Date(b.sdate)-new Date(a.sdate));
-
-    if(statusFilter==='ssi') deptCases=deptCases.filter(c=>c.ssiclass);
-    else if(statusFilter==='active') deptCases=deptCases.filter(c=>{
-      if(c.ssiclass) return false;
-      const sd=c.surv==='30 DAYS'?30:c.surv==='365 DAYS'?365:90;
-      const sDate=new Date(c.sdate); sDate.setHours(0,0,0,0);
-      return Math.floor((today0-sDate)/86400000)<=sd;
-    });
-    else if(statusFilter==='done') deptCases=deptCases.filter(c=>{
-      if(c.ssiclass) return false;
-      const sd=c.surv==='30 DAYS'?30:c.surv==='365 DAYS'?365:90;
-      const sDate=new Date(c.sdate); sDate.setHours(0,0,0,0);
-      return Math.floor((today0-sDate)/86400000)>sd;
-    });
-
-    const dctbl=document.getElementById('deptCaseTbl');
-    if(!deptCases.length){
-      dctbl.innerHTML='<tr><td colspan="9"><div class="empty"><div class="ei">📋</div><p>Tiada kes untuk '+yr+'</p></div></td></tr>';
-    } else {
-      dctbl.innerHTML=deptCases.map((c,i)=>{
-        const survDays=c.surv==='30 DAYS'?30:c.surv==='365 DAYS'?365:90;
-        const sDate=new Date(c.sdate); sDate.setHours(0,0,0,0);
-        const elapsed=Math.floor((today0-sDate)/86400000);
-        const left=survDays-elapsed;
-        const expired=left<0;
-
-        let badge='';
-        if(c.ssiclass){
-          const cls=c.ssiclass==='Superficial Incisional'?'tag-amber':c.ssiclass==='Deep Incisional'?'tag-red':'tag-purple';
-          badge='<span class="tag '+cls+'">🔴 '+esc(c.ssiclass)+'</span>';
-        } else if(expired){
-          badge='<span class="tag tag-green">✅ Selesai</span>';
-        } else if(left<=7){
-          badge='<span class="tag tag-red">⏳ '+left+' hari</span>';
-        } else if(left<=14){
-          badge='<span class="tag tag-amber">⏳ '+left+' hari</span>';
-        } else {
-          badge='<span class="tag tag-teal">⏳ '+left+' hari</span>';
-        }
-
-        const daysCell=expired
-          ?'<span style="color:var(--muted);font-size:.70rem;">—</span>'
-          :'<span style="font-family:monospace;font-weight:600;color:'+(left<=7?'var(--red)':left<=14?'var(--amber)':'var(--teal)')+';">'+left+'d</span>';
-
-        return'<tr>'
-          +'<td style="color:var(--muted);font-size:.68rem;">'+(i+1)+'</td>'
-          +'<td style="font-weight:600;font-size:.76rem;">'+esc(c.sp||'-')+'</td>'
-          +'<td style="font-family:monospace;font-size:.68rem;">'+esc(c.mrn||'-')+'</td>'
-          +'<td>'+fmtD(c.sdate)+'</td>'
-          +'<td style="font-size:.70rem;color:var(--muted);">'+esc(c.proc||'—')+'</td>'
-          +'<td><span class="tag tag-teal" style="font-size:.60rem;">'+esc(c.surv||'90 DAYS')+'</span></td>'
-          +'<td>'+daysCell+'</td>'
-          +'<td>'+badge+'</td>'
-          +'<td style="white-space:nowrap;">'
-          +'<button class="btn btn-outline btn-sm" onclick="viewCase(\''+c.id+'\')">👁</button> '
-          +(c.ssiclass?'':'<button class="btn btn-sm" style="background:#8e44ad;color:#fff;padding:3px 8px;font-size:.68rem;" onclick="showPage(\'ssi\',document.querySelector(\'[onclick*=ssi]\'));setTimeout(()=>openSsiModal(\''+c.id+'\'),300)">+ SSI</button>')
-          +'</td>'
-          +'</tr>';
-      }).join('');
-    }
   }
 
   // Visible depts — coordinator sees all, dept user sees only own
   const allDepts=getDepts();
   const visDepts=coord?allDepts:[userDept];
 
-  // Left chart — coordinator: SSI Rate by Jabatan | dept user: Total Surgery by Surgery type
+  // Left chart — coordinator: SSI Rate by Department | dept user: Total Surgery by Surgery type
   const db=document.getElementById('deptBars');
   const leftTitle=document.getElementById('leftChartTitle');
   if(coord){
-    // Coordinator — SSI Rate mengikut Jabatan
-    if(leftTitle) leftTitle.textContent='SSI Rate Mengikut Jabatan';
+    // Coordinator — SSI Rate mengikut Department
+    if(leftTitle) leftTitle.textContent='SSI Rate by Department';
     const dData=visDepts.map(d=>{
       const dc=cases.filter(c=>c.dept===d);
       const ds=dc.filter(c=>c.ssiclass);
       const dr=dc.length>0?parseFloat(((ds.length/dc.length)*100).toFixed(1)):0;
       return{d,total:dc.length,ssi:ds.length,rate:dr};
     }).filter(x=>x.total>0);
-    if(!dData.length){db.innerHTML='<div class="empty"><div class="ei">📊</div><p>Tiada data</p></div>';}
+    if(!dData.length){db.innerHTML='<div class="empty"><div class="ei">📊</div><p>No data</p></div>';}
     else{
       const mx=Math.max(...dData.map(x=>x.rate),1);
       db.innerHTML=dData.map(x=>{
@@ -1766,20 +1630,27 @@ function renderDashboard(){
       }).join('');
     }
   } else {
-    // Dept user — Total Surgery dipantau mengikut jenis surgery
-    if(leftTitle) leftTitle.textContent='Total Surgery Dipantau Mengikut Jenis Surgery';
-    const surgTypes2=getSurgTypes();
+    // Dept user — Total Surgery dipantau mengikut jenis surgery (semua, termasuk 0)
+    if(leftTitle) leftTitle.textContent='Total Surgery Monitored by Type';
+    const surgTypes2=getSurgTypes().filter(t=>!t.dept||t.dept===userDept);
     const spCounts=surgTypes2.map(t=>({sp:t.sp,n:cases.filter(c=>c.sp===t.sp).length}))
-      .filter(x=>x.n>0).sort((a,b)=>b.n-a.n);
-    if(!spCounts.length){db.innerHTML='<div class="empty"><div class="ei">📊</div><p>Tiada data</p></div>';}
+      .sort((a,b)=>b.n-a.n);
+    if(!surgTypes2.length){db.innerHTML='<div class="empty"><div class="ei">📊</div><p>No data</p></div>';}
     else{
       const mx2=Math.max(...spCounts.map(x=>x.n),1);
       db.innerHTML=spCounts.map(x=>{
-        const w=Math.max((x.n/mx2)*100,5);
-        const lbl=x.sp.length>14?x.sp.substring(0,12)+'\u2026':x.sp;
-        return'<div class="brow"><div class="blbl" title="'+esc(x.sp)+'">'+esc(lbl)+'</div>'
-          +'<div class="btrack"><div class="bfill" style="width:'+w+'%;background:var(--teal);">'
-          +'<span class="bval">'+x.n+'</span></div></div></div>';
+        const w=x.n>0?Math.max((x.n/mx2)*100,5):0;
+        const lbl=x.sp.length>16?x.sp.substring(0,14)+'\u2026':x.sp;
+        const col=x.n>0?'var(--teal)':'var(--border)';
+        return'<div class="brow">'
+          +'<div class="blbl" title="'+esc(x.sp)+'">'+esc(lbl)+'</div>'
+          +'<div class="btrack">'
+          +(x.n>0
+            ?'<div class="bfill" style="width:'+w+'%;background:'+col+';"><span class="bval">'+x.n+'</span></div>'
+            :'')
+          +'</div>'
+          +'<span style="font-family:Arial,sans-serif;font-size:.76rem;font-variant-numeric:lining-nums;color:var(--muted);min-width:18px;text-align:right;">'+x.n+'</span>'
+          +'</div>';
       }).join('');
     }
   }
@@ -1789,7 +1660,7 @@ function renderDashboard(){
   const surgTypes=getSurgTypes();
   const sData=surgTypes.map(t=>({sp:t.sp,n:ssiCases.filter(c=>c.sp===t.sp).length}))
     .filter(x=>x.n>0).sort((a,b)=>b.n-a.n).slice(0,8);
-  if(!sData.length){sb.innerHTML='<div class="empty"><div class="ei">🔪</div><p>Tiada SSI</p></div>';}
+  if(!sData.length){sb.innerHTML='<div class="empty"><div class="ei">🔪</div><p>No SSI</p></div>';}
   else{
     const mx=Math.max(...sData.map(x=>x.n),1);
     sb.innerHTML=sData.map(x=>{
@@ -1848,13 +1719,13 @@ function renderDashboard(){
       +'<td>'+ds.filter(c=>c.ssiclass==='Organ/Space').length+'</td>'
       +'</tr>';
   }).join('');
-  dtbl.innerHTML=trows||'<tr><td colspan="8"><div class="empty"><div class="ei">🗂</div><p>Tiada data</p></div></td></tr>';
+  dtbl.innerHTML=trows||'<tr><td colspan="8"><div class="empty"><div class="ei">🗂</div><p>No data</p></div></td></tr>';
 
   // ── Recent SSI (compact — top 5 only) ──
   const recent=[...ssiCases].sort((a,b)=>new Date(b.sdate)-new Date(a.sdate)).slice(0,5);
   const rtbl=document.getElementById('recentTbl');
   if(!recent.length){
-    rtbl.innerHTML='<tr><td colspan="8"><div class="empty"><div class="ei">✅</div><p>Tiada kes SSI</p></div></td></tr>';
+    rtbl.innerHTML='<tr><td colspan="8"><div class="empty"><div class="ei">✅</div><p>No SSI cases</p></div></td></tr>';
   } else {
     let rows='';
     for(const c of recent){
@@ -1891,7 +1762,7 @@ function renderDashboard(){
   });
   const surgRows=Object.values(surgMap).sort((a,b)=>b.total-a.total);
   if(!surgRows.length){
-    surgBrkTbl.innerHTML='<tr><td colspan="8"><div class="empty"><div class="ei">🔪</div><p>Tiada data</p></div></td></tr>';
+    surgBrkTbl.innerHTML='<tr><td colspan="8"><div class="empty"><div class="ei">🔪</div><p>No data</p></div></td></tr>';
   } else {
     surgBrkTbl.innerHTML=surgRows.map(r=>{
       const rate=r.total>0?((r.ssi/r.total)*100).toFixed(1):'0.0';
@@ -1950,7 +1821,7 @@ function renderDashboard(){
 
   const monTbl=document.getElementById('monitoredTbl');
   if(!monCases.length){
-    monTbl.innerHTML='<tr><td colspan="10"><div class="empty"><div class="ei">📋</div><p>Tiada kes dalam senarai ini</p></div></td></tr>';
+    monTbl.innerHTML='<tr><td colspan="10"><div class="empty"><div class="ei">📋</div><p>No cases in this list</p></div></td></tr>';
   } else {
     monTbl.innerHTML=monCases.map((c,i)=>{
       const survDays=c.surv==='30 DAYS'?30:c.surv==='365 DAYS'?365:90;
@@ -1965,7 +1836,7 @@ function renderDashboard(){
         const cls=c.ssiclass==='Superficial Incisional'?'tag-amber':c.ssiclass==='Deep Incisional'?'tag-red':'tag-purple';
         statusBadge='<span class="tag '+cls+'">🔴 '+esc(c.ssiclass)+'</span>';
       } else if(expired){
-        statusBadge='<span class="tag tag-green">✅ Selesai — Tiada SSI</span>';
+        statusBadge='<span class="tag tag-green">✅ Done — No SSI</span>';
       } else if(daysLeft<=7){
         statusBadge='<span class="tag tag-red">⏳ '+daysLeft+' hari lagi</span>';
       } else if(daysLeft<=14){
@@ -2011,11 +1882,11 @@ function renderRecords(){
   if(search) cases=cases.filter(c=>(c.name||'').toLowerCase().includes(search)||(c.mrn||'').toLowerCase().includes(search));
   cases.sort((a,b)=>new Date(b.sdate||0)-new Date(a.sdate||0));
   const tb=document.getElementById('recTbl');
-  if(!cases.length){tb.innerHTML='<tr><td colspan="10"><div class="empty"><div class="ei">📭</div><p>Tiada rekod</p></div></td></tr>';return;}
+  if(!cases.length){tb.innerHTML='<tr><td colspan="10"><div class="empty"><div class="ei">📭</div><p>No records</p></div></td></tr>';return;}
   tb.innerHTML=cases.map((c,i)=>{
     const hasSSI=!!c.ssiclass;
     const stag=hasSSI?(c.ssiclass==='Superficial Incisional'?'tag-amber':c.ssiclass==='Deep Incisional'?'tag-red':'tag-purple'):'tag-green';
-    const slbl=hasSSI?c.ssiclass:'Tiada SSI';
+    const slbl=hasSSI?c.ssiclass:'No SSI';
     return'<tr>'
       +'<td style="color:var(--muted);font-size:.70rem;">'+(i+1)+'</td>'
       +'<td><strong>'+esc(c.name||'-')+'</strong></td>'
@@ -2034,7 +1905,7 @@ function renderRecords(){
   }).join('');
 }
 
-function delCase(id){if(!confirm('Padam kes ini?'))return;sd('cases',getCases().filter(c=>c.id!==id));renderRecords();}
+function delCase(id){if(!confirm('Delete kes ini?'))return;sd('cases',getCases().filter(c=>c.id!==id));renderRecords();}
 
 // ═══════════ VIEW ═══════════
 function viewCase(id){
@@ -2044,9 +1915,9 @@ function viewCase(id){
     +'<div style="font-weight:500;margin-top:1px;font-size:.78rem;">'+esc(v||'-')+'</div></div>';
   document.getElementById('viewBody').innerHTML=
     '<div style="display:grid;grid-template-columns:1fr 1fr;gap:7px;">'
-    +r('Nama',c.name)+r('No. IC / Pasport',c.mrn)+r('Jabatan',c.dept)+r('Tarikh Surgery',fmtD(c.sdate))
-    +r('Surgery Performed',c.sp)+r('Prosedur',c.proc)+r('Jenis Surgery',c.stype)
-    +r('Klasifikasi SSI',c.ssiclass||'Tiada SSI')+r('Organisma',c.org)
+    +r('Name',c.name)+r('IC No. / Pasport',c.mrn)+r('Department',c.dept)+r('Date Surgery',fmtD(c.sdate))
+    +r('Surgery Performed',c.sp)+r('Procedure',c.proc)+r('Jenis Surgery',c.stype)
+    +r('Klasifikasi SSI',c.ssiclass||'No SSI')+r('Organism',c.org)
     +r('BMI',c.bmi)+r('DM',c.dm)+r('Drain',c.drain)+'</div>'
     +(c.notes?'<div style="margin-top:8px;padding:8px;background:var(--pre);border-radius:6px;font-size:.76rem;"><strong>Catatan:</strong> '+esc(c.notes)+'</div>':'');
   document.getElementById('vPrintBtn').onclick=()=>{closeView();printCase(id);};
@@ -2063,19 +1934,19 @@ function printCase(id){
     +'<div class="pf-sub">'+esc(c.hosp||'HTPN')+'</div>'
     +'<div style="display:grid;grid-template-columns:1fr 1fr;border:1px solid #ccc;font-size:.76rem;margin-bottom:4px;">'
     +'<div style="padding:4px 8px;border-right:1px solid #ccc;"><b>Hospital:</b> '+esc(c.hosp||'-')+'</div>'
-    +'<div style="padding:4px 8px;"><b>Jabatan:</b> '+esc(c.dept||'-')+'</div></div>'
+    +'<div style="padding:4px 8px;"><b>Department:</b> '+esc(c.dept||'-')+'</div></div>'
     +'<div class="psec" style="background:#2c3e50;color:#fff;">PATIENT DETAIL</div>'
-    +pr('Nama',c.name)+pr('Bangsa',c.race)
-    +'<div class="prow"><div class="plbl">Umur / Jantina</div><div class="pval">'+(c.age||'-')+' / '+(c.gender||'-')+'</div></div>'
-    +pr('No. IC / Pasport',c.mrn)+pr('No. Hubungi',c.contact)
+    +pr('Name',c.name)+pr('Race',c.race)
+    +'<div class="prow"><div class="plbl">Age / Gender</div><div class="pval">'+(c.age||'-')+' / '+(c.gender||'-')+'</div></div>'
+    +pr('IC No. / Pasport',c.mrn)+pr('No. Hubungi',c.contact)
     +'<div class="psec" style="background:#2c3e50;color:#fff;">SURGERY INFO</div>'
-    +pr('Tarikh Surgery',fmtD(c.sdate))
+    +pr('Date Surgery',fmtD(c.sdate))
     +'<div class="prow"><div class="plbl">Masa Surgery</div><div class="pval">'+(c.tstart||'-')+' — '+(c.tend||'-')+(c.dur?' ('+c.dur+' min)':'')+'</div></div>'
     +pr('Surgery Performed',c.sp)+pr('Name of Procedure',c.proc)
     +pr('Implant Used',c.implant)+pr('Type of Surgery',c.stype)+pr('Primary Surgeon',c.surgeon)
     +pr('Surveillance',c.surv)
     +'<div class="psec" style="background:#14a085;color:#fff;">PRE-OPERATIVE</div>'
-    +pr('Diagnosis',c.diag)+pr('Tarikh Masuk',fmtD(c.admit))+pr('BMI',c.bmi)
+    +pr('Diagnosis',c.diag)+pr('Date Masuk',fmtD(c.admit))+pr('BMI',c.bmi)
     +pr('Antibiotic Prophylaxis',c.preabx)+pr('DM',c.dm)+pr('Bathing',c.bathing)
     +pr('Hair Removal',c.hair)+pr('Smoking/Vaping',c.smoke)+pr('Immunosuppressant',c.immuno)
     +'<div class="psec" style="background:#e67e22;color:#fff;">INTRA-OPERATIVE</div>'
@@ -2087,7 +1958,7 @@ function printCase(id){
     +pr('Uncontrolled Sugar',c.sugar)+pr('Duration Antibiotics',c.abxdur)+pr('Readmitted',c.readmit)
     +(c.ssiclass?'<div class="psec" style="background:#8e44ad;color:#fff;">SSI</div>'
       +pr('Day of SSI',c.ssiday?'Day '+c.ssiday:'-')+pr('Site of SSI',c.ssisite)
-      +pr('Klasifikasi SSI',c.ssiclass)+pr('Diagnosis',c.ssidiag)+pr('Organisma',c.org):'')
+      +pr('Klasifikasi SSI',c.ssiclass)+pr('Diagnosis',c.ssidiag)+pr('Organism',c.org):'')
     +(c.notes?pr('Catatan',c.notes):'')
     +'<div style="margin-top:10px;padding:5px 8px;background:#f9f9f9;border:1px solid #ccc;font-size:.66rem;color:#999;">'
     +'ID: '+c.id+' | Saved: '+(c.saved_at?new Date(c.saved_at).toLocaleString('ms-MY'):'-')+'</div>';
@@ -2115,8 +1986,8 @@ async function retrySyncAll(){
   const cases=getCases();
   const pending=cases.filter(c=>!c.synced);
   if(!pending.length){
-    alert('Tiada kes yang perlu di-sync semula.');
-    if(btn){btn.textContent='🔄 Cuba Sync Semula Semua';btn.disabled=false;}
+    alert('No cases need to be re-synced.');
+    if(btn){btn.textContent='🔄 Retry Sync Semua';btn.disabled=false;}
     return;
   }
 
@@ -2131,10 +2002,10 @@ async function retrySyncAll(){
   }
 
   setSyncBar(
-    ok>0 ? '✅ '+ok+' kes berjaya sync'+(fail>0?', '+fail+' masih gagal':'') : '❌ Semua gagal — semak Apps Script',
+    ok>0 ? '✅ '+ok+' cases synced successfully'+(fail>0?', '+fail+' still failed':'') : '❌ All failed — check Apps Script',
     ok>0&&fail===0?'ok':'err'
   );
-  if(btn){ btn.textContent='🔄 Cuba Sync Semula Semua'; btn.disabled=false; }
+  if(btn){ btn.textContent='🔄 Retry Sync Semua'; btn.disabled=false; }
 
   // Refresh both settings + dashboard alert
   renderSettings();
@@ -2145,8 +2016,8 @@ async function retrySyncAll(){
   if(cntEl) cntEl.textContent=remaining;
 
   const msg=ok>0
-    ? '✅ '+ok+' kes berjaya dihantar ke Sheets!'+(fail>0?'\n❌ '+fail+' kes masih gagal.\n\nSemak Apps Script deployment.':'')
-    : '❌ Semua kes masih gagal.\n\nKemungkinan Apps Script perlu di-deploy semula.\nPergi Tetapan → expand "Tukar URL" untuk update.';
+    ? '✅ '+ok+' cases successfully sent to Sheets!'+(fail>0?'\n❌ '+fail+' kes still failed.\n\nCheck Apps Script deployment.':'')
+    : '❌ Semua kes still failed.\n\nApps Script may need to be redeployed.\nGo to Settings → expand "Change URL" to update.';
   alert(msg);
 }
 
@@ -2180,7 +2051,7 @@ async function runFullDiagnosis(){
   }
 
   // Step 2: POST test data
-  r2.textContent='⏳ Step 2: Test POST dengan data ujian...'; r2.style.cssText=wait;
+  r2.textContent='⏳ Step 2: Test POST with test data...'; r2.style.cssText=wait;
   const testPayload={
     action:'submitCase',
     payload:{
@@ -2204,7 +2075,7 @@ async function runFullDiagnosis(){
     r2.textContent='✅ Step 2: POST request sampai ke Apps Script (HTTP '+res.status+')'; r2.style.cssText=pass;
 
     // Step 3: parse response
-    r3.textContent='⏳ Step 3: Semak response...'; r3.style.cssText=wait;
+    r3.textContent='⏳ Step 3: Check response...'; r3.style.cssText=wait;
     try{
       const d=JSON.parse(txt);
       if(d.success){
@@ -2214,15 +2085,15 @@ async function runFullDiagnosis(){
         r3.textContent='❌ Step 3: Apps Script return error'; r3.style.cssText=fail;
         rr.innerHTML='<strong>❌ Error dari Apps Script:</strong><br>'+esc(d.error||JSON.stringify(d))
           +'<br><br><strong>Kemungkinan punca:</strong><br>'
-          +'• Sheet ID tidak betul dalam kod Apps Script<br>'
-          +'• Sheet dilindungi / tiada permission untuk write<br>'
-          +'• Kod Apps Script ada bug dalam fungsi doPost()';
+          +'• Sheet ID incorrect in Apps Script code<br>'
+          +'• Sheet is protected / no write permission<br>'
+          +'• Apps Script has a bug in doPost() function';
       }
     }catch(e){
       r3.textContent='❌ Step 3: Response bukan JSON — Apps Script ada error'; r3.style.cssText=fail;
       rr.innerHTML='<strong>Raw response dari Apps Script:</strong><br>'+esc(rawResp.substring(0,500))
-        +'<br><br><strong>Ini bermakna:</strong> Apps Script crash / exception dalam doPost()<br>'
-        +'Buka Apps Script → Execution Log untuk tengok error detail.';
+        +'<br><br><strong>This means:</strong> Apps Script crashed / exception in doPost()<br>'
+        +'Open Apps Script → Execution Log to view error details.';
     }
   }catch(e){
     r2.textContent='❌ Step 2: POST gagal — '+e.message; r2.style.cssText=fail;
@@ -2230,8 +2101,8 @@ async function runFullDiagnosis(){
     rr.innerHTML='<strong>❌ POST request gagal:</strong><br>'+esc(e.message)
       +'<br><br><strong>Kemungkinan punca:</strong><br>'
       +'• CORS block POST (tapi bukan GET)<br>'
-      +'• Deploy setting "Who has access" perlu set kepada <strong>Anyone</strong><br>'
-      +'• Cuba deploy semula: Manage deployments → Edit → New version';
+      +'• Deploy setting "Who has access" must be set to <strong>Anyone</strong><br>'
+      +'• Redeploy: Manage deployments → Edit → New version';
     r3.textContent='⏩ Step 3: Dilangkau'; r3.style.cssText='color:var(--muted);';
   }
   rr.style.display='block';
@@ -2329,7 +2200,7 @@ async function runDebug(){
   });
 
   html+='<table style="width:100%;border-collapse:collapse;font-size:.72rem;margin-bottom:10px;">';
-  html+='<tr style="background:var(--pre);"><th style="padding:5px 8px;text-align:left;">Jabatan</th><th style="padding:5px 8px;">Total</th><th style="padding:5px 8px;color:var(--green);">Synced</th><th style="padding:5px 8px;color:var(--red);">Unsynced</th></tr>';
+  html+='<tr style="background:var(--pre);"><th style="padding:5px 8px;text-align:left;">Department</th><th style="padding:5px 8px;">Total</th><th style="padding:5px 8px;color:var(--green);">Synced</th><th style="padding:5px 8px;color:var(--red);">Unsynced</th></tr>';
   Object.entries(byDept).forEach(([d,v])=>{
     html+='<tr style="border-bottom:1px solid var(--border);">';
     html+='<td style="padding:5px 8px;font-weight:600;">'+esc(d)+'</td>';
@@ -2374,8 +2245,8 @@ async function forceResyncAll(){
     }catch(e){ fail++; }
   }
   const msg=ok>0
-    ?'✅ '+ok+' kes berjaya dihantar!'+(fail>0?' ⚠ '+fail+' masih gagal.':'')
-    :'❌ Semua gagal — semak Apps Script.';
+    ?'✅ '+ok+' kes berjaya dihantar!'+(fail>0?' ⚠ '+fail+' still failed.':'')
+    :'❌ All failed — check Apps Script.';
   if(out) out.innerHTML+='<br><strong>'+msg+'</strong>';
   setSyncBar(msg, ok>0&&fail===0?'ok':'err');
   // Refresh debug view
@@ -2422,18 +2293,18 @@ function renderDeptList(){
     +'<div style="font-size:.68rem;color:var(--muted);">Kata laluan: ••••••</div>'
     +'</div>'
     +'<button class="btn btn-outline btn-sm" onclick="toggleEditDept('+i+')">✏️ Edit</button>'
-    +'<button class="btn btn-danger btn-sm" onclick="delDept('+i+')">Padam</button>'
+    +'<button class="btn btn-danger btn-sm" onclick="delDept('+i+')">Delete</button>'
     +'</div>'
     +'<div id="deptEdit_'+i+'" style="display:none;margin-top:8px;padding-top:8px;border-top:1px solid var(--border);">'
     +'<div class="grid2" style="gap:8px;margin-bottom:7px;">'
-    +'<div class="fg"><label>Nama Jabatan</label>'
+    +'<div class="fg"><label>Name Department</label>'
     +'<input type="text" id="den_'+i+'" value="'+esc(d)+'"></div>'
-    +'<div class="fg"><label>Tukar Kata Laluan</label>'
+    +'<div class="fg"><label>Tukar Password</label>'
     +'<input type="password" id="depw_'+i+'" placeholder="Kata laluan baru..."></div>'
     +'</div>'
     +'<div style="display:flex;gap:6px;">'
-    +'<button class="btn btn-primary btn-sm" onclick="saveDeptEdit('+i+')">💾 Simpan</button>'
-    +'<button class="btn btn-outline btn-sm" onclick="toggleEditDept('+i+')">Batal</button>'
+    +'<button class="btn btn-primary btn-sm" onclick="saveDeptEdit('+i+')">💾 Save</button>'
+    +'<button class="btn btn-outline btn-sm" onclick="toggleEditDept('+i+')">Cancel</button>'
     +'</div></div>'
     +'</div>'
   ).join('');
@@ -2447,7 +2318,7 @@ function toggleEditDept(i){
 function saveDeptEdit(i){
   const newName=document.getElementById('den_'+i)?.value.trim();
   const newPw=document.getElementById('depw_'+i)?.value.trim();
-  if(!newName){alert('Nama jabatan tidak boleh kosong.');return;}
+  if(!newName){alert('Name jabatan tidak boleh kosong.');return;}
   const depts=getDepts();
   const oldName=depts[i];
   depts[i]=newName;
@@ -2473,7 +2344,7 @@ function saveDeptEdit(i){
   sd('cases',cases);
   renderDeptList();
   syncDeptDropdowns();
-  alert('✅ Jabatan '+newName+' dikemaskini!');
+  alert('✅ Department '+newName+' dikemaskini!');
 }
 
 function onUrlChange(){setUrl(document.getElementById('scriptUrl').value.trim());updateUrlStatus();}
@@ -2492,7 +2363,7 @@ function addDept(){
   if(!n){alert('Sila isi nama jabatan.');return;}
   if(pw.length<6){alert('Kata laluan mesti sekurang-kurangnya 6 aksara.');return;}
   const d=getDepts();
-  if(d.includes(n)){alert('Jabatan sudah wujud.');return;}
+  if(d.includes(n)){alert('Department sudah wujud.');return;}
   d.push(n); sd('depts',d);
   // Save password
   const passwords=getPasswords();
@@ -2508,9 +2379,9 @@ function addDept(){
   document.getElementById('newDept').value='';
   if(document.getElementById('newDeptPw')) document.getElementById('newDeptPw').value='';
   renderSettings();
-  alert('✅ Jabatan '+n+' ditambah! Kata laluan: '+pw);
+  alert('✅ Department '+n+' ditambah! Kata laluan: '+pw);
 }
-function delDept(i){if(!confirm('Padam?'))return;const d=getDepts();d.splice(i,1);sd('depts',d);renderSettings();}
+function delDept(i){if(!confirm('Delete?'))return;const d=getDepts();d.splice(i,1);sd('depts',d);renderSettings();}
 
 function syncDeptDropdowns(){
   const depts=getDepts();
@@ -2536,7 +2407,7 @@ function syncDeptDropdowns(){
   // Dashboard dept filter — coordinator only, dept user hidden
   const dd=document.getElementById('dashDept');
   if(dd){
-    dd.innerHTML='<option value="">Semua Jabatan</option>'+depts.map(d=>'<option>'+esc(d)+'</option>').join('');
+    dd.innerHTML='<option value="">All Departments</option>'+depts.map(d=>'<option>'+esc(d)+'</option>').join('');
     dd.style.display=coord?'':'none';
   }
 
@@ -2544,7 +2415,7 @@ function syncDeptDropdowns(){
   const fd2=document.getElementById('fDept');
   if(fd2){
     if(coord){
-      fd2.innerHTML='<option value="">Semua Jabatan</option>'+depts.map(d=>'<option>'+esc(d)+'</option>').join('');
+      fd2.innerHTML='<option value="">All Departments</option>'+depts.map(d=>'<option>'+esc(d)+'</option>').join('');
       fd2.style.display='';
     } else {
       fd2.innerHTML='<option value="">'+esc(userDept)+'</option>';
@@ -2556,7 +2427,7 @@ function syncDeptDropdowns(){
   const fd3=document.getElementById('ssiFilterDept');
   if(fd3){
     if(coord){
-      fd3.innerHTML='<option value="">Semua Jabatan</option>'+depts.map(d=>'<option>'+esc(d)+'</option>').join('');
+      fd3.innerHTML='<option value="">All Departments</option>'+depts.map(d=>'<option>'+esc(d)+'</option>').join('');
       fd3.style.display='';
     } else {
       fd3.innerHTML='<option value="">'+esc(userDept)+'</option>';
@@ -2575,7 +2446,7 @@ function renderSettingsAccess(){
 
 function changePassword(dept){
   const input = document.getElementById('pw_'+dept.replace(/[^a-zA-Z]/g,''));
-  if(!input || !input.value.trim()){ alert('Sila masukkan kata laluan baru.'); return; }
+  if(!input || !input.value.trim()){ alert('Sila masukkan password baru.'); return; }
   if(input.value.trim().length < 6){ alert('Kata laluan mesti sekurang-kurangnya 6 aksara.'); return; }
   const pw = getPasswords();
   pw[dept] = input.value.trim();
@@ -2585,7 +2456,7 @@ function changePassword(dept){
 }
 
 function resetPassword(dept){
-  if(!confirm('Reset kata laluan '+dept+' kepada default?')) return;
+  if(!confirm('Reset password '+dept+' kepada default?')) return;
   const pw = getPasswords();
   pw[dept] = DEFAULT_PASSWORDS[dept];
   localStorage.setItem('ssi_passwords', JSON.stringify(pw));
@@ -2593,7 +2464,7 @@ function resetPassword(dept){
 }
 
 function clearAll(){
-  if(!confirm('Padam semua data tempatan? Data dalam Sheets tidak terpadam.')) return;
+  if(!confirm('Delete all local data? Data dalam Sheets tidak terpadam.')) return;
   localStorage.removeItem('ssi_cases');
   alert('Data tempatan dipadam.');
   renderDashboard();
@@ -2639,7 +2510,7 @@ function renderSSIPage(){
 
   const tb=document.getElementById('ssiTbl');
   if(!cases.length){
-    tb.innerHTML='<tr><td colspan="10"><div class="empty"><div class="ei">✅</div><p>Tiada kes dalam senarai ini</p></div></td></tr>';
+    tb.innerHTML='<tr><td colspan="10"><div class="empty"><div class="ei">✅</div><p>No cases in this list</p></div></td></tr>';
     return;
   }
 
@@ -2666,10 +2537,10 @@ function renderSSIPage(){
     const survTag='<span class="tag tag-teal">'+esc(c.surv||'90 DAYS')+'</span>';
     const ssiStatus=hasSSI
       ?'<span class="tag '+(c.ssiclass==='Superficial Incisional'?'tag-amber':c.ssiclass==='Deep Incisional'?'tag-red':'tag-purple')+'">'+esc(c.ssiclass)+'</span>'
-      :(c.expired?'<span class="tag" style="background:#f0f0f0;color:#999;">Selesai</span>':'<span class="tag tag-green">Tiada SSI</span>');
+      :(c.expired?'<span class="tag" style="background:#f0f0f0;color:#999;">Done</span>':'<span class="tag tag-green">No SSI</span>');
 
     const actionBtn=hasSSI
-      ?'<button class="btn btn-outline btn-sm" onclick="viewCase(\''+c.id+'\')">👁 Lihat</button>'
+      ?'<button class="btn btn-outline btn-sm" onclick="viewCase(\''+c.id+'\')">👁 View</button>'
       :(c.expired?'<button class="btn btn-outline btn-sm" style="color:var(--muted);border-color:var(--muted);" onclick="openSsiModal(\''+c.id+'\')">+ Update</button>'
       :'<button class="btn btn-sm" style="background:#8e44ad;color:#fff;" onclick="openSsiModal(\''+c.id+'\')">🔴 Update SSI</button>');
 
@@ -2692,7 +2563,7 @@ function syncSsiFilterDepts(){
   const depts=getDepts();
   const el=document.getElementById('ssiFilterDept'); if(!el) return;
   const cur=el.value;
-  el.innerHTML='<option value="">Semua Jabatan</option>'+depts.map(d=>'<option>'+esc(d)+'</option>').join('');
+  el.innerHTML='<option value="">All Departments</option>'+depts.map(d=>'<option>'+esc(d)+'</option>').join('');
   if(cur) el.value=cur;
 }
 
@@ -2801,7 +2672,7 @@ async function saveSsiUpdate(){
       setSyncBar('✅ SSI update berjaya sync ke Sheets','ok');
     } else {
       markSynced(_ssiTargetId, false);
-      document.getElementById('su_msg').innerHTML='<span style="color:var(--amber)">⚠ Disimpan tempatan. Gagal sync Sheets: '+(res?.error||'Timeout')+'<br>Boleh retry di Tetapan → Cuba Sync Semula.</span>';
+      document.getElementById('su_msg').innerHTML='<span style="color:var(--amber)">⚠ Disimpan tempatan. Gagal sync Sheets: '+(res?.error||'Timeout')+'<br>Boleh retry di Settings → Cuba Sync Semula.</span>';
     }
   } else {
     document.getElementById('su_msg').innerHTML='<span style="color:var(--green)">✅ SSI disimpan dalam app.</span>';
@@ -2834,7 +2705,7 @@ function saveDenom(dept,yr,val){
 // ═══════════ RISK FACTORS — BAR CHART ═══════════
 function renderRisks(cases){
   const n=cases.length;
-  const noData='<div style="grid-column:1/-1;text-align:center;padding:16px;color:var(--muted);font-size:.76rem;">Tiada data untuk tempoh ini.</div>';
+  const noData='<div style="grid-column:1/-1;text-align:center;padding:16px;color:var(--muted);font-size:.76rem;">No data untuk tempoh ini.</div>';
 
   if(!n){
     ['rf-pre','rf-intra','rf-post'].forEach(id=>{
@@ -2924,7 +2795,7 @@ const DEFAULT_REFS = [
    desc:'Borang pengumpulan data SSI — KKM 2023'},
 ];
 
-function renderRujukan(){
+function renderReferences(){
   const coord=isCoordinator();
   // Show admin section for coordinator only
   const admin=document.getElementById('refAdminSection');
@@ -2992,7 +2863,7 @@ function saveDriveFolder(){
   const url=document.getElementById('driveFolderUrl')?.value.trim()||'';
   if(!url){localStorage.removeItem('ssi_driveFolder');}
   else{localStorage.setItem('ssi_driveFolder',url);}
-  renderRujukan();
+  renderReferences();
   const msg=document.getElementById('ref_msg');
   if(msg) msg.innerHTML='<span style="color:var(--green)">✅ URL folder disimpan.</span>';
 }
@@ -3016,23 +2887,23 @@ function addRef(){
   if(document.getElementById('ref_title')) document.getElementById('ref_title').value='';
   if(document.getElementById('ref_url')) document.getElementById('ref_url').value='';
   if(document.getElementById('ref_desc')) document.getElementById('ref_desc').value='';
-  if(msg) msg.innerHTML='<span style="color:var(--green)">✅ Rujukan ditambah.</span>';
-  renderRujukan();
+  if(msg) msg.innerHTML='<span style="color:var(--green)">✅ References ditambah.</span>';
+  renderReferences();
 }
 
 function delRef(id){
-  if(!confirm('Padam rujukan ini?')) return;
+  if(!confirm('Delete rujukan ini?')) return;
   const refs=getRefs();
   const base=refs.length>0?refs:[...DEFAULT_REFS];
   const updated=base.filter(r=>r.id!==id);
   sd('refs',updated);
-  renderRujukan();
+  renderReferences();
 }
 
 // ═══════════ CSV ═══════════
 function exportCSV(){
-  const cases=getCases(); if(!cases.length){alert('Tiada data.');return;}
-  const hdr=['ID','Nama','MRN','Jabatan','Tarikh_Surgery','Surgery_Performed','Prosedur','Jenis_Surgery','SSI_Class','Organisma','BMI','DM','Drain','Catatan'];
+  const cases=getCases(); if(!cases.length){alert('No data.');return;}
+  const hdr=['ID','Name','MRN','Department','Date_Surgery','Surgery_Performed','Procedure','Jenis_Surgery','SSI_Class','Organism','BMI','DM','Drain','Catatan'];
   const rows=cases.map(c=>[c.id,c.name,c.mrn,c.dept,c.sdate,c.sp,c.proc,c.stype,c.ssiclass||'',c.org,c.bmi,c.dm,c.drain,c.notes]
     .map(v=>'"'+(v||'').toString().replace(/"/g,'""')+'"').join(','));
   const blob=new Blob(['\uFEFF'+[hdr.join(','),...rows].join('\n')],{type:'text/csv;charset=utf-8;'});
@@ -3045,7 +2916,7 @@ function exportCSV(){
 function exportUnsyncedCSV(){
   const cases=getCases().filter(c=>!c.synced);
   if(!cases.length){alert('Tiada kes yang perlu dihantar.');return;}
-  const hdr=['ID','Nama','MRN','Jabatan','Tarikh_Surgery','Surgery_Performed','Prosedur','Jenis_Surgery','DM','BMI','Drain','Saved_At'];
+  const hdr=['ID','Name','MRN','Department','Date_Surgery','Surgery_Performed','Procedure','Jenis_Surgery','DM','BMI','Drain','Saved_At'];
   const rows=cases.map(c=>[c.id,c.name,c.mrn,c.dept,c.sdate,c.sp,c.proc,c.stype,c.dm,c.bmi,c.drain,c.saved_at]
     .map(v=>'"'+(v||'').toString().replace(/"/g,'""')+'"').join(','));
   const blob=new Blob(['\uFEFF'+[hdr.join(','),...rows].join('\n')],{type:'text/csv;charset=utf-8;'});
@@ -3065,7 +2936,7 @@ function fmtD(d){
 function esc(s){return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
 
 // ═══════════ AUTH ═══════════
-// Kata laluan — coordinator boleh tukar dalam Tetapan
+// Kata laluan — coordinator boleh tukar dalam Settings
 const DEFAULT_PASSWORDS = {
   'coordinator': 'ipc2025',
   'Surgical':    'surgical2025',
@@ -3098,7 +2969,7 @@ function doLogin(){
   errEl.style.display='none';
 
   if(!dept){ errEl.textContent='Sila pilih jabatan/role.'; errEl.style.display='block'; return; }
-  if(!pass){ errEl.textContent='Sila masukkan kata laluan.'; errEl.style.display='block'; return; }
+  if(!pass){ errEl.textContent='Sila masukkan password.'; errEl.style.display='block'; return; }
 
   const passwords = getPasswords();
   if(passwords[dept] !== pass){
@@ -3146,7 +3017,7 @@ function applyUserAccess(){
     }
   }
 
-  // Show/hide Tetapan tab — coordinator only
+  // Show/hide Settings tab — coordinator only
   const settingsTab=document.getElementById('settingsTab');
   if(settingsTab) settingsTab.style.display=isCoord?'':'none';
   // Refresh dept dropdowns after login — important for coordinator
