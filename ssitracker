@@ -1,0 +1,3222 @@
+<!DOCTYPE html>
+<html lang="ms">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SSI Tracker — HTPN</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=DM+Mono:wght@400;500&display=swap');
+:root{
+  --teal:#0d7377;--teal2:#14a085;--red:#c0392b;--amber:#e67e22;--green:#27ae60;
+  --bg:#f0f4f4;--card:#fff;--border:#d0dede;--text:#1a2e2e;--muted:#6b8080;--pre:#e8f4f4;
+}
+*{box-sizing:border-box;margin:0;padding:0;}
+body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--text);min-height:100vh;}
+
+/* TOPBAR */
+.topbar{background:var(--teal);color:#fff;display:flex;align-items:center;justify-content:space-between;padding:0 18px;height:52px;position:sticky;top:0;z-index:100;box-shadow:0 2px 8px rgba(0,0,0,.2);}
+.topbar-title{font-size:.92rem;font-weight:700;}
+.topbar-sub{font-size:.66rem;opacity:.75;margin-top:1px;}
+.badge{background:rgba(255,255,255,.2);border-radius:20px;padding:2px 10px;font-size:.7rem;font-weight:500;}
+.badge.connected{background:rgba(39,174,96,.4);}
+
+/* SYNC STATUS BAR */
+#syncBar{display:none;padding:6px 18px;font-size:.74rem;font-weight:500;text-align:center;}
+#syncBar.syncing{display:block;background:#fef5e7;color:#e67e22;}
+#syncBar.ok{display:block;background:#eafaf1;color:#27ae60;}
+#syncBar.err{display:block;background:#fdecea;color:#c0392b;}
+
+/* TABS */
+.nav-tabs{display:flex;background:var(--card);border-bottom:2px solid var(--border);padding:0 10px;gap:2px;overflow-x:auto;}
+.nav-tab{padding:10px 14px;font-size:.76rem;font-weight:500;color:var(--muted);cursor:pointer;border:none;background:none;border-bottom:3px solid transparent;margin-bottom:-2px;white-space:nowrap;transition:all .2s;}
+.nav-tab:hover{color:var(--teal);}
+.nav-tab.active{color:var(--teal);border-bottom-color:var(--teal);}
+
+/* PAGES */
+.page{display:none;padding:14px;max-width:1080px;margin:0 auto;}
+.page.active{display:block;}
+
+/* CARDS */
+.card{background:var(--card);border-radius:10px;border:1px solid var(--border);padding:14px;margin-bottom:14px;}
+.card-title{font-size:.72rem;font-weight:700;text-transform:uppercase;letter-spacing:.6px;color:var(--teal);margin-bottom:12px;padding-bottom:8px;border-bottom:1px solid var(--pre);}
+
+/* FORM */
+.fg{display:flex;flex-direction:column;gap:4px;}
+.fg label{font-size:.72rem;font-weight:500;color:var(--muted);}
+.fg input,.fg select,.fg textarea{border:1px solid var(--border);border-radius:6px;padding:7px 9px;font-size:.80rem;font-family:'Inter',sans-serif;color:var(--text);background:#fff;transition:border .15s;}
+.fg input:focus,.fg select:focus,.fg textarea:focus{outline:none;border-color:var(--teal);box-shadow:0 0 0 3px rgba(13,115,119,.1);}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:10px;}
+.grid3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;}
+.grid4{display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:10px;}
+.span2{grid-column:1/-1;}
+.chk-grp{display:flex;flex-wrap:wrap;gap:8px;margin-top:3px;}
+.chk-item{display:flex;align-items:center;gap:4px;font-size:.78rem;cursor:pointer;}
+.chk-item input{accent-color:var(--teal);width:14px;height:14px;}
+.sec{font-size:.7rem;font-weight:700;letter-spacing:.8px;text-transform:uppercase;color:#fff;padding:5px 11px;border-radius:5px;margin:14px 0 8px;}
+.sec-pre{background:var(--teal2);}
+.sec-intra{background:var(--amber);}
+.sec-post{background:var(--red);}
+.sec-ssi{background:#8e44ad;}
+
+/* BUTTONS */
+.btn{display:inline-flex;align-items:center;gap:5px;padding:7px 14px;border-radius:7px;font-size:.78rem;font-weight:600;cursor:pointer;border:none;transition:all .2s;}
+.btn-primary{background:var(--teal);color:#fff;}
+.btn-primary:hover{background:var(--teal2);}
+.btn-danger{background:var(--red);color:#fff;}
+.btn-outline{background:#fff;color:var(--teal);border:1.5px solid var(--teal);}
+.btn-outline:hover{background:var(--pre);}
+.btn-amber{background:var(--amber);color:#fff;}
+.btn-green{background:var(--green);color:#fff;}
+.btn-sm{padding:4px 10px;font-size:.70rem;}
+.abar{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:14px;align-items:center;}
+
+/* STATS */
+.stats{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:14px;}
+.stat{background:var(--card);border-radius:10px;border:1px solid var(--border);padding:12px;text-align:center;}
+.stat-v{font-size:1.7rem;font-weight:700;color:var(--teal);font-family:'DM Mono',monospace;line-height:1;}
+.stat-l{font-size:.66rem;color:var(--muted);margin-top:3px;font-weight:500;}
+.stat.red .stat-v{color:var(--red);}
+.stat.amber .stat-v{color:var(--amber);}
+.stat.green .stat-v{color:var(--green);}
+
+/* TABLE */
+.tw{overflow-x:auto;}
+table{width:100%;border-collapse:collapse;font-size:.76rem;}
+th{background:var(--pre);color:var(--teal);font-weight:600;text-align:left;padding:7px 9px;border-bottom:2px solid var(--border);white-space:nowrap;}
+td{padding:7px 9px;border-bottom:1px solid #eef3f3;}
+tr:hover td{background:#f9fefe;}
+.tag{display:inline-block;border-radius:12px;padding:2px 7px;font-size:.66rem;font-weight:600;}
+.tag-red{background:#fdecea;color:var(--red);}
+.tag-green{background:#eafaf1;color:var(--green);}
+.tag-amber{background:#fef5e7;color:var(--amber);}
+.tag-teal{background:var(--pre);color:var(--teal);}
+.tag-purple{background:#f5eef8;color:#8e44ad;}
+
+/* BAR CHART */
+.bars{display:flex;flex-direction:column;gap:6px;}
+.brow{display:flex;align-items:center;gap:7px;font-size:.72rem;}
+.blbl{min-width:100px;font-size:.7rem;}
+.btrack{flex:1;background:var(--pre);border-radius:4px;height:18px;overflow:hidden;}
+.bfill{height:100%;border-radius:4px;display:flex;align-items:center;justify-content:flex-end;padding-right:5px;transition:width .5s;}
+.bval{font-size:.66rem;font-weight:600;color:#fff;}
+
+/* MODAL */
+.overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:999;align-items:flex-start;justify-content:center;overflow-y:auto;padding:16px;}
+.overlay.open{display:flex;}
+.modal{background:#fff;border-radius:12px;width:100%;max-width:780px;box-shadow:0 20px 60px rgba(0,0,0,.2);}
+.mhdr{background:var(--teal);color:#fff;padding:13px 16px;border-radius:12px 12px 0 0;display:flex;justify-content:space-between;align-items:center;}
+.mhdr h2{font-size:.88rem;font-weight:600;}
+.mbdy{padding:16px;}
+.mftr{padding:11px 16px;border-top:1px solid var(--border);display:flex;gap:8px;justify-content:flex-end;}
+.xbtn{background:none;border:none;color:#fff;font-size:1.1rem;cursor:pointer;opacity:.8;}
+.xbtn:hover{opacity:1;}
+
+/* PRINT */
+.print-ov{display:none;position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:1000;align-items:flex-start;justify-content:center;overflow-y:auto;padding:14px;}
+.print-ov.open{display:flex;}
+.pform{background:#fff;width:100%;max-width:740px;border-radius:8px;overflow:hidden;box-shadow:0 20px 60px rgba(0,0,0,.3);}
+.pfhdr{background:var(--teal);color:#fff;padding:11px 16px;display:flex;justify-content:space-between;align-items:center;}
+.pfbdy{padding:16px;}
+.pf-title{text-align:center;font-size:.92rem;font-weight:700;margin-bottom:2px;}
+.pf-sub{text-align:center;font-size:.72rem;color:var(--muted);margin-bottom:12px;}
+.prow{display:flex;border:1px solid #ccc;margin-bottom:-1px;font-size:.76rem;}
+.plbl{background:#f5f5f5;font-weight:600;padding:4px 8px;min-width:145px;border-right:1px solid #ccc;font-size:.72rem;}
+.pval{padding:4px 8px;flex:1;}
+.psec{padding:4px 10px;font-size:.7rem;font-weight:700;letter-spacing:.5px;margin:8px 0 0;}
+
+/* HINTS */
+.hint-chip{cursor:pointer;background:var(--pre);border:1px solid var(--border);border-radius:12px;padding:2px 8px;font-size:.66rem;color:var(--teal);transition:background .15s;}
+.hint-chip:hover{background:#c5e8e8;}
+
+/* ALERTS */
+.alert{padding:8px 12px;border-radius:7px;font-size:.78rem;margin-bottom:10px;}
+.alert-info{background:var(--pre);color:var(--teal);border:1px solid #a8d8d8;}
+.alert-ok{background:#eafaf1;color:var(--green);border:1px solid #abebc6;}
+.alert-warn{background:#fef5e7;color:var(--amber);border:1px solid #f5cba7;}
+
+.empty{text-align:center;padding:28px;color:var(--muted);}
+.empty .ei{font-size:1.8rem;margin-bottom:6px;}
+
+/* RISK FACTOR BAR CHARTS */
+.rf-section{margin-bottom:14px;}
+.rf-phase-hdr{font-size:.7rem;font-weight:700;letter-spacing:.8px;text-transform:uppercase;
+  color:#fff;padding:6px 12px;border-radius:7px 7px 0 0;display:flex;align-items:center;gap:6px;}
+.rf-phase-pre{background:var(--teal2);}
+.rf-phase-intra{background:var(--amber);}
+.rf-phase-post{background:var(--red);}
+.rf-chart{background:var(--card);border:1px solid var(--border);border-top:none;
+  border-radius:0 0 7px 7px;padding:12px 14px;
+  display:grid;grid-template-columns:1fr 1fr;gap:6px 20px;}
+.rf-row{display:flex;align-items:center;gap:7px;padding:3px 0;}
+.rf-lbl{font-size:.70rem;font-weight:500;color:var(--text);width:160px;flex-shrink:0;line-height:1.3;}
+.rf-track{flex:1;height:16px;background:var(--pre);border-radius:20px;overflow:hidden;min-width:60px;}
+.rf-fill{height:100%;border-radius:20px;transition:width .6s ease;min-width:0;}
+.rf-pct{font-size:.72rem;font-weight:700;font-family:'Calibri',Arial,sans-serif;width:42px;text-align:right;flex-shrink:0;}
+.rf-cnt{font-size:.62rem;color:var(--muted);width:32px;flex-shrink:0;}
+
+/* DENOMINATOR EDIT */
+.denom-cell{display:flex;align-items:center;gap:5px;}
+.denom-input{width:68px;padding:3px 6px;border:1.5px solid var(--teal);border-radius:5px;
+  font-size:.76rem;font-family:'DM Mono',monospace;text-align:center;color:var(--teal);font-weight:600;}
+.denom-edit-btn{background:none;border:1px solid var(--border);border-radius:4px;padding:2px 5px;
+  font-size:.62rem;cursor:pointer;color:var(--muted);transition:all .15s;}
+.denom-edit-btn:hover{border-color:var(--teal);color:var(--teal);}
+.denom-badge{font-size:.60rem;color:var(--muted);font-style:italic;}
+
+/* RUJUKAN / REFERENCE TAB */
+.ref-card{background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:10px 12px;
+  display:flex;align-items:center;gap:10px;transition:box-shadow .15s;}
+.ref-card:hover{box-shadow:0 2px 12px rgba(13,115,119,.12);}
+.ref-icon{width:36px;height:36px;border-radius:8px;display:flex;align-items:center;justify-content:center;
+  font-size:1.2rem;flex-shrink:0;}
+.ref-cat-guideline{background:#e8f4f4;color:var(--teal);}
+.ref-cat-sop{background:#fef5e7;color:var(--amber);}
+.ref-cat-article{background:#f5eef8;color:#8e44ad);}
+.ref-cat-other{background:#f0f0f0;color:#666;}
+.ref-meta{flex:1;min-width:0;}
+.ref-title{font-size:.82rem;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.ref-sub{font-size:.67rem;color:var(--muted);margin-top:1px;}
+.drive-embed{width:100%;height:480px;border:none;border-radius:8px;background:var(--bg);}
+
+@media(max-width:700px){
+  .stats{grid-template-columns:repeat(2,1fr);}
+  .grid2,.grid3,.grid4{grid-template-columns:1fr;}
+  .page{padding:10px;}
+  .rf-grid{grid-template-columns:repeat(2,1fr);}
+}
+@media print{
+  body *{visibility:hidden;}
+  .print-ov,.print-ov *{visibility:visible;}
+  .print-ov{position:absolute;left:0;top:0;background:#fff;padding:0;}
+  .pform{box-shadow:none;border-radius:0;max-width:100%;}
+  .pfhdr,.btn{display:none;}
+}
+
+/* ── LOGIN ── */
+#loginScreen{
+  display:flex;position:fixed;inset:0;z-index:9999;
+  background:linear-gradient(135deg,#0d7377 0%,#0a5557 50%,#083d3f 100%);
+  align-items:center;justify-content:center;padding:20px;
+}
+.login-box{
+  background:#fff;border-radius:16px;width:100%;max-width:380px;
+  box-shadow:0 24px 80px rgba(0,0,0,.35);overflow:hidden;
+}
+.login-header{
+  background:linear-gradient(135deg,#0d7377,#14a085);
+  padding:28px 24px 20px;text-align:center;color:#fff;
+}
+.login-logo{font-size:2.4rem;margin-bottom:6px;}
+.login-title{font-size:1.1rem;font-weight:700;margin-bottom:2px;}
+.login-sub{font-size:.72rem;opacity:.8;}
+.login-body{padding:24px;}
+.login-body .fg{margin-bottom:14px;}
+.login-body label{font-size:.76rem;font-weight:600;color:var(--muted);margin-bottom:4px;display:block;}
+.login-body input,.login-body select{
+  width:100%;border:1.5px solid var(--border);border-radius:8px;
+  padding:10px 12px;font-size:.85rem;font-family:'Inter',sans-serif;transition:border .2s;
+}
+.login-body input:focus,.login-body select:focus{outline:none;border-color:var(--teal);box-shadow:0 0 0 3px rgba(13,115,119,.12);}
+.login-err{background:#fdecea;color:var(--red);border:1px solid #f5b7b1;border-radius:7px;padding:8px 12px;font-size:.78rem;margin-bottom:12px;display:none;}
+.btn-login{width:100%;padding:11px;background:var(--teal);color:#fff;border:none;border-radius:8px;font-size:.88rem;font-weight:700;cursor:pointer;transition:background .2s;}
+.btn-login:hover{background:var(--teal2);}
+.login-footer{text-align:center;padding:0 24px 18px;font-size:.68rem;color:var(--muted);}
+.user-chip{display:flex;align-items:center;gap:5px;background:rgba(255,255,255,.15);border-radius:20px;padding:3px 10px 3px 5px;font-size:.7rem;cursor:pointer;transition:background .2s;}
+.user-chip:hover{background:rgba(255,255,255,.25);}
+.user-avatar{width:22px;height:22px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:.65rem;font-weight:700;}
+.role-coord{background:#f39c12;color:#fff;}
+.role-dept{background:#8e44ad;color:#fff;}
+
+</style>
+</head>
+<body>
+
+<!-- ══════════ LOGIN SCREEN ══════════ -->
+<div id="loginScreen">
+  <div class="login-box">
+    <div class="login-header">
+      <div class="login-logo">🏥</div>
+      <div class="login-title">SSI Tracker — HTPN</div>
+      <div class="login-sub">Surgical Site Infection Surveillance · IPC Unit</div>
+    </div>
+    <div class="login-body">
+      <div class="login-err" id="loginErr">Username atau kata laluan salah.</div>
+      <div class="fg">
+        <label>Jabatan / Role</label>
+        <select id="loginDept">
+          <option value="">-- Pilih --</option>
+          <option value="coordinator">🔑 Coordinator (IPC)</option>
+          <option value="Surgical">🏥 Surgical</option>
+          <option value="OMFS">🦷 OMFS (Oral & Maxillofacial)</option>
+          <option value="Orthopaedic">🦴 Orthopaedic</option>
+          <option value="O&G">🤱 O&amp;G (Obstetrics & Gynaecology)</option>
+        </select>
+      </div>
+      <div class="fg">
+        <label>Kata Laluan</label>
+        <input type="password" id="loginPass" placeholder="••••••••" onkeydown="if(event.key==='Enter')doLogin()">
+      </div>
+      <button class="btn-login" onclick="doLogin()">Log Masuk</button>
+    </div>
+    <div class="login-footer">HTPN · IPC Unit · Versi 1.0<br>Hubungi coordinator untuk reset kata laluan</div>
+  </div>
+</div>
+
+<div id="appContent" style="display:none;">
+<div class="topbar">
+  <div>
+    <div class="topbar-title">🏥 SSI Tracker — HTPN</div>
+    <div class="topbar-sub">Surgical Site Infection Surveillance · IPC Unit</div>
+  </div>
+  <div style="display:flex;gap:5px;align-items:center;">
+    <span class="badge" id="sheetsBadge">⚪ Sheets</span>
+    <span class="badge" id="yrBadge">2025</span>
+    <div style="display:flex;align-items:center;gap:5px;background:rgba(255,255,255,.15);border-radius:20px;padding:3px 8px 3px 4px;">
+      <div class="user-avatar role-dept" id="userAvatar" style="width:22px;height:22px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:.62rem;font-weight:700;">?</div>
+      <span id="userLabel" style="font-size:.72rem;font-weight:500;">-</span>
+    </div>
+    <button onclick="confirmLogout()" style="background:#c0392b;color:#fff;border:none;border-radius:16px;padding:4px 10px;font-size:.72rem;font-weight:600;cursor:pointer;display:flex;align-items:center;gap:3px;">
+      ↩ Log Keluar
+    </button>
+  </div>
+</div>
+
+<div id="syncBar"></div>
+
+<div class="nav-tabs">
+  <button class="nav-tab active" onclick="showPage('dashboard',this)">📊 Dashboard</button>
+  <button class="nav-tab" onclick="showPage('entry',this)">➕ Entry Kes</button>
+  <button class="nav-tab" onclick="showPage('ssi',this)">🔴 Update SSI <span id="ssiPendingBadge" style="display:none;background:#c0392b;color:#fff;border-radius:10px;padding:1px 6px;font-size:.62rem;margin-left:3px;">0</span></button>
+  <button class="nav-tab" onclick="showPage('records',this)">🗂 Semua Kes</button>
+  <button class="nav-tab" onclick="showPage('rujukan',this)">📚 Rujukan</button>
+  <button class="nav-tab" id="settingsTab" onclick="showPage('settings',this)" style="display:none;">⚙️ Tetapan</button>
+</div>
+
+<!-- ══════════ DASHBOARD ══════════ -->
+<div class="page active" id="page-dashboard">
+
+  <!-- Coordinator: unsynced cases alert -->
+  <div id="unsyncedAlert" style="display:none;background:#fdecea;border:1px solid #f5b7b1;border-radius:8px;padding:10px 14px;margin-bottom:12px;font-size:.78rem;">
+    <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;">
+      <div>
+        <strong style="color:var(--red);">⚠️ <span id="unsyncedCount">0</span> kes belum masuk Google Sheets!</strong><br>
+        <span style="color:#666;font-size:.72rem;">Data sudah tersimpan dalam app tetapi belum dihantar ke Sheets. Klik untuk sync semula.</span>
+      </div>
+      <button class="btn btn-danger btn-sm" onclick="showPage('settings',document.querySelector('[onclick*=settings]'));retrySyncAll()">🔄 Sync Semula Sekarang</button>
+    </div>
+  </div>
+
+  <div class="abar">
+    <span style="font-weight:600;font-size:.86rem;">Papan Pemantauan SSI</span>
+    <div style="margin-left:auto;display:flex;gap:7px;">
+      <select id="dashYear" onchange="renderDashboard()" style="padding:5px 9px;border:1px solid var(--border);border-radius:6px;font-size:.76rem;">
+        <option>2024</option><option>2025</option><option selected>2026</option><option>2027</option>
+      </select>
+      <select id="dashDept" onchange="renderDashboard()" style="padding:5px 9px;border:1px solid var(--border);border-radius:6px;font-size:.76rem;">
+        <option value="">Semua Jabatan</option>
+      </select>
+      <button id="btnPullSheets" class="btn btn-green btn-sm" onclick="pullAllCases()" style="display:none;" title="Refresh semua data dari Google Sheets">🔄 Refresh dari Sheets</button>
+      <button class="btn btn-outline btn-sm" onclick="exportCSV()">⬇ CSV</button>
+    </div>
+  </div>
+
+  <div class="stats" id="statsGrid">
+    <div class="stat"><div class="stat-v" id="ds-total">0</div><div class="stat-l">Total Surgery</div></div>
+    <div class="stat red"><div class="stat-v" id="ds-ssi">0</div><div class="stat-l">Kes SSI</div></div>
+    <div class="stat amber"><div class="stat-v" id="ds-rate">0.0%</div><div class="stat-l">SSI Rate</div></div>
+    <div class="stat green"><div class="stat-v" id="ds-depts">0</div><div class="stat-l" id="ds-depts-label">Jabatan Dipantau</div></div>
+  </div>
+
+  <!-- Coordinator: 2 bar charts | Dept user: monitored case list -->
+  <div id="coordCharts" style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+    <div class="card">
+      <div class="card-title" id="leftChartTitle">SSI Rate Mengikut Jabatan</div>
+      <div class="bars" id="deptBars"><div class="empty"><div class="ei">📊</div><p>Tiada data</p></div></div>
+    </div>
+    <div class="card">
+      <div class="card-title">Kes SSI Mengikut Jenis Surgery</div>
+      <div class="bars" id="surgBars"><div class="empty"><div class="ei">🔪</div><p>Tiada data</p></div></div>
+    </div>
+  </div>
+
+  <!-- Dept user: case list replaces charts -->
+  <div id="deptCaseList" style="display:none;">
+    <div class="card">
+      <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;margin-bottom:12px;">
+        <div>
+          <div style="font-size:.84rem;font-weight:700;" id="deptCaseTitle">Kes Dalam Pantauan</div>
+          <div style="font-size:.70rem;color:var(--muted);margin-top:2px;" id="deptCaseSubtitle">Semua kes yang dipantau oleh jabatan anda</div>
+        </div>
+        <select id="deptMonFilterStatus" onchange="renderDashboard()" style="padding:5px 9px;border:1px solid var(--border);border-radius:6px;font-size:.74rem;">
+          <option value="">Semua Status</option>
+          <option value="active">⏳ Dalam Pantauan</option>
+          <option value="ssi">🔴 Ada SSI</option>
+          <option value="done">✅ Selesai (Tiada SSI)</option>
+        </select>
+      </div>
+      <div class="tw">
+        <table>
+          <thead>
+            <tr>
+              <th>#</th>
+              <th>Surgery Performed</th>
+              <th>No. IC</th>
+              <th>Tarikh Surgery</th>
+              <th>Prosedur</th>
+              <th>Surveillance</th>
+              <th>Baki Hari</th>
+              <th>Status</th>
+              <th></th>
+            </tr>
+          </thead>
+          <tbody id="deptCaseTbl"></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-title">Kes SSI Terkini</div>
+    <div class="tw">
+      <table>
+        <thead><tr><th>Nama</th><th>No. IC</th><th>Jabatan</th><th>Tarikh</th><th>Prosedur</th><th>SSI</th><th>Organisma</th><th></th></tr></thead>
+        <tbody id="recentTbl"></tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- ── RISK FACTORS ── -->
+  <div id="riskFactorsSection">
+    <div style="font-weight:600;font-size:.86rem;margin-bottom:10px;margin-top:4px;">
+      ⚠️ Analisis Faktor Risiko SSI
+      <span style="font-size:.70rem;font-weight:400;color:var(--muted);margin-left:6px;">berdasarkan kes dalam tempoh yang dipilih</span>
+    </div>
+
+    <!-- PRE-OPERATIVE -->
+    <div class="rf-section">
+      <div class="rf-phase-hdr rf-phase-pre">🔵 PRE-OPERATIVE RISK FACTORS</div>
+      <div class="rf-chart" id="rf-pre"></div>
+    </div>
+
+    <!-- INTRA-OPERATIVE -->
+    <div class="rf-section">
+      <div class="rf-phase-hdr rf-phase-intra">🟠 INTRA-OPERATIVE RISK FACTORS</div>
+      <div class="rf-chart" id="rf-intra"></div>
+    </div>
+
+    <!-- POST-OPERATIVE -->
+    <div class="rf-section">
+      <div class="rf-phase-hdr rf-phase-post">🔴 POST-OPERATIVE RISK FACTORS</div>
+      <div class="rf-chart" id="rf-post"></div>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════ ENTRY KES ══════════ -->
+<div class="page" id="page-entry">
+  <div class="abar">
+    <span style="font-weight:600;font-size:.86rem;">Entry Kes Surgery Baru</span>
+    <div style="margin-left:auto;display:flex;gap:7px;">
+      <button class="btn btn-outline btn-sm" onclick="clearForm()">🗑 Kosong</button>
+    </div>
+  </div>
+  <div id="saveAlert" style="display:none;" class="alert alert-ok">Kes disimpan!</div>
+
+  <!-- Hospital & Dept -->
+  <div class="card">
+    <div class="card-title">Hospital &amp; Jabatan</div>
+    <div class="grid2">
+      <div class="fg"><label>Hospital</label><input type="text" id="f_hosp" value="Hospital Tengku Permaisuri Norashikin (HTPN)"></div>
+      <div class="fg"><label>Jabatan *</label><select id="f_dept"><option value="">-- Pilih --</option></select></div>
+    </div>
+  </div>
+
+  <!-- Patient -->
+  <div class="card">
+    <div class="card-title">Maklumat Pesakit</div>
+    <div class="grid2">
+      <div class="fg"><label>Nama Penuh *</label><input type="text" id="f_name"></div>
+      <div class="fg"><label>Bangsa</label>
+        <select id="f_race">
+          <option value="">-- Pilih --</option>
+          <option>Melayu</option>
+          <option>Cina</option>
+          <option>India</option>
+          <option>Iban</option>
+          <option>Bidayuh</option>
+          <option>Melanau</option>
+          <option>Orang Ulu</option>
+          <option>Kadazan</option>
+          <option>Bajau</option>
+          <option>Lain-lain Bumiputera</option>
+          <option>Lain-lain</option>
+        </select>
+      </div>
+    </div>
+    <div class="grid4" style="margin-top:9px;">
+      <div class="fg"><label>Umur</label><input type="number" id="f_age" min="0" max="130"></div>
+      <div class="fg"><label>Jantina</label>
+        <select id="f_gender">
+          <option value="">--</option><option>Male</option><option>Female</option>
+        </select>
+      </div>
+      <div class="fg"><label>No. IC / Pasport</label><input type="text" id="f_mrn"></div>
+      <div class="fg"><label>No. Hubungi</label><input type="tel" id="f_contact"></div>
+    </div>
+  </div>
+
+  <!-- Surgery Info -->
+  <div class="card">
+    <div class="card-title">Maklumat Pembedahan</div>
+    <div class="grid4">
+      <div class="fg">
+        <label>Tarikh Surgery *</label>
+        <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap;">
+          <input type="date" id="f_sdate" style="flex:1;" onchange="checkDateWarning()">
+          <button type="button" class="btn btn-outline btn-sm" onclick="setToday()" title="Set tarikh hari ini">📅 Hari Ini</button>
+          <button type="button" class="btn btn-outline btn-sm" onclick="setYesterday()" title="Set tarikh semalam">⬅ Semalam</button>
+        </div>
+        <div id="dateWarning" style="display:none;margin-top:4px;padding:5px 9px;background:#fef5e7;border:1px solid #f5cba7;border-radius:6px;font-size:.72rem;color:#e67e22;">
+          ⚠ Tarikh yang dipilih bukan hari ini — pastikan tarikh operation adalah betul.
+        </div>
+      </div>
+      <div class="fg"><label>Masa Mula</label><input type="time" id="f_tstart" onchange="calcDur()" oninput="calcDur()"></div>
+      <div class="fg"><label>Masa Tamat</label><input type="time" id="f_tend" onchange="calcDur()" oninput="calcDur()"></div>
+      <div class="fg"><label>Tempoh (min) — Auto</label><input type="number" id="f_dur" min="0" placeholder="Auto-kira..." style="background:#f0f4f4;color:var(--teal);font-weight:600;"></div>
+    </div>
+
+    <!-- Surgery Performed — KEY FIELD -->
+    <div class="grid2" style="margin-top:9px;">
+      <div class="fg">
+        <label>Surgery Performed (Kategori) *</label>
+        <div style="display:flex;gap:5px;">
+          <select id="f_surgPerf" style="flex:1;" onchange="onSurgPerfChange()">
+            <option value="">-- Pilih atau tambah baru --</option>
+          </select>
+          <button type="button" class="btn btn-green btn-sm" onclick="openAddSurg()" title="Tambah jenis baru">+ Baru</button>
+        </div>
+      </div>
+      <div class="fg">
+        <label>Name of Procedure (Detail)</label>
+        <input type="text" id="f_proc" placeholder="Huraian prosedur yang dilakukan...">
+        <div id="procHints" style="display:flex;flex-wrap:wrap;gap:4px;margin-top:4px;"></div>
+      </div>
+    </div>
+
+    <div class="grid3" style="margin-top:9px;">
+      <div class="fg"><label>Implant Used</label>
+        <select id="f_implant"><option value="">--</option><option>YES</option><option selected>NO</option></select>
+      </div>
+      <div class="fg"><label>Type of Surgery</label>
+        <select id="f_stype">
+          <option value="">--</option>
+          <option>Clean</option><option>Clean contaminated</option><option>Contaminated</option><option>Dirty</option>
+        </select>
+      </div>
+      <div class="fg"><label>Primary Surgeon</label>
+        <select id="f_surgeon">
+          <option value="">--</option>
+          <option>Specialist &gt; 5 years</option>
+          <option>Specialist &lt; 5 years</option>
+          <option>Medical Officer</option>
+        </select>
+      </div>
+    </div>
+
+    <div class="fg" style="margin-top:9px;">
+      <label>Tempoh Surveillance</label>
+      <div class="chk-grp">
+        <label class="chk-item"><input type="radio" name="surv" value="30 DAYS"> 30 Hari</label>
+        <label class="chk-item"><input type="radio" name="surv" value="90 DAYS" checked> 90 Hari</label>
+        <label class="chk-item"><input type="radio" name="surv" value="365 DAYS"> 365 Hari (implant)</label>
+      </div>
+    </div>
+  </div>
+
+  <!-- PRE-OP -->
+  <div class="sec sec-pre">PRE-OPERATIVE</div>
+  <div class="card">
+    <div class="grid2">
+      <div class="fg"><label>Diagnosis</label><input type="text" id="f_diag"></div>
+      <div class="fg"><label>Tarikh Masuk Wad</label><input type="date" id="f_admit"></div>
+    </div>
+    <div class="grid3" style="margin-top:9px;">
+      <div class="fg"><label>BMI</label><input type="number" id="f_bmi" step="0.1"></div>
+      <div class="fg"><label>Antibiotic Prophylaxis</label>
+        <select id="f_preabx"><option value="">--</option><option>YES</option><option>NO</option></select>
+      </div>
+      <div class="fg"><label>Diabetes Mellitus</label>
+        <select id="f_dm"><option value="">--</option><option>YES</option><option>NO</option><option>UNKNOWN</option></select>
+      </div>
+    </div>
+    <div class="grid3" style="margin-top:9px;">
+      <div class="fg"><label>Bathing</label>
+        <select id="f_bathing"><option value="">--</option><option>YES</option><option>NO</option></select>
+      </div>
+      <div class="fg"><label>Hair Removal</label>
+        <select id="f_hair">
+          <option value="">--</option><option>Shaving</option><option>Clipping</option><option>Not Done</option>
+        </select>
+      </div>
+      <div class="fg"><label>Smoking / Vaping</label>
+        <select id="f_smoke">
+          <option value="">--</option><option>NON</option><option>ACTIVE</option><option>EX(&ge;4 WEEKS)</option>
+        </select>
+      </div>
+    </div>
+    <div class="fg" style="margin-top:9px;"><label>Immunosuppressant Therapy</label>
+      <div class="chk-grp">
+        <label class="chk-item"><input type="checkbox" id="cb_st"> Steroids</label>
+        <label class="chk-item"><input type="checkbox" id="cb_ch"> Chemotherapy</label>
+        <label class="chk-item"><input type="checkbox" id="cb_bi"> Biologic</label>
+        <label class="chk-item"><input type="checkbox" id="cb_ra"> Radiotherapy</label>
+        <label class="chk-item"><input type="checkbox" id="cb_ni"> None</label>
+      </div>
+    </div>
+  </div>
+
+  <!-- INTRA-OP -->
+  <div class="sec sec-intra">INTRA-OPERATIVE</div>
+  <div class="card">
+    <div class="grid2">
+      <div class="fg"><label>Skin Preparation (1st Layer)</label>
+        <select id="f_skin1">
+          <option value="">--</option><option>CHLORHEXIDINE</option><option>POVIDONE</option>
+          <option>ALCOHOL BASE</option><option>AQUEOUS BASE</option><option>UNKNOWN</option>
+        </select>
+      </div>
+      <div class="fg"><label>Skin Preparation (2nd Layer)</label>
+        <select id="f_skin2">
+          <option value="">--</option><option>CHLORHEXIDINE</option><option>POVIDONE</option>
+          <option>ALCOHOL BASE</option><option>AQUEOUS BASE</option><option>UNKNOWN</option><option>N/A</option>
+        </select>
+      </div>
+    </div>
+    <div class="grid3" style="margin-top:9px;">
+      <div class="fg"><label>Antibiotic Prophylaxis</label>
+        <select id="f_intraabx"><option value="">--</option><option>YES</option><option>NO</option></select>
+      </div>
+      <div class="fg"><label>Time of Administration</label><input type="time" id="f_abxtime"></div>
+      <div class="fg"><label>Redosing</label>
+        <select id="f_redose">
+          <option value="">--</option><option>No</option><option>2nd Dose</option><option>3rd Dose</option>
+        </select>
+      </div>
+    </div>
+    <div class="grid2" style="margin-top:9px;">
+      <div class="fg"><label>Redosing Reason</label>
+        <select id="f_redosereason">
+          <option value="">--</option><option>Bleeding</option><option>Prolonged Surgery</option><option>Others</option>
+        </select>
+      </div>
+      <div class="fg"><label>If Others (Redosing Reason)</label><input type="text" id="f_redoseother"></div>
+    </div>
+    <div class="grid2" style="margin-top:9px;">
+      <div class="fg"><label>Antimicrobial Impregnated Sutures</label>
+        <select id="f_sutures"><option value="">--</option><option>YES</option><option>NO</option></select>
+      </div>
+      <div class="fg"><label>Drain</label>
+        <select id="f_drain"><option value="">--</option><option>YES</option><option>NO</option></select>
+      </div>
+    </div>
+  </div>
+
+  <!-- POST-OP -->
+  <div class="sec sec-post">POST-OPERATIVE</div>
+  <div class="card">
+    <div class="grid2">
+      <div class="fg"><label>Uncontrolled Sugar (&gt;11.1 mmol/L)</label>
+        <select id="f_sugar"><option value="">--</option><option>YES</option><option>NO</option></select>
+      </div>
+      <div class="fg"><label>Duration of Antibiotics</label>
+        <select id="f_abxdur">
+          <option value="">--</option>
+          <option>Within 24 Hours</option><option>&ge;24 Hours</option>
+          <option>&ge;48 Hours</option><option>&le;48 Hours</option>
+        </select>
+      </div>
+    </div>
+    <div class="fg" style="margin-top:9px;"><label>Is Patient Readmitted?</label>
+      <div class="chk-grp">
+        <label class="chk-item"><input type="radio" name="readmit" value="YES"> Ya</label>
+        <label class="chk-item"><input type="radio" name="readmit" value="NO"> Tidak</label>
+      </div>
+    </div>
+  </div>
+
+  <!-- Same Date Batch Info -->
+  <div id="batchInfo" style="display:none;margin-bottom:12px;">
+    <div style="background:var(--pre);border:1px solid var(--border);border-radius:8px;padding:10px 14px;font-size:.78rem;">
+      <strong style="color:var(--teal);">📋 Mod Entry Beramai:</strong>
+      Tarikh surgery: <span id="batchDate" style="font-weight:700;color:var(--teal);"></span> —
+      <span id="batchCount" style="font-weight:700;color:var(--red);">0</span> kes disimpan untuk tarikh ini.
+      <button type="button" class="btn btn-outline btn-sm" onclick="clearBatch()" style="margin-left:8px;">✕ Reset Tarikh</button>
+    </div>
+  </div>
+
+  <div style="display:flex;gap:8px;justify-content:flex-end;margin-bottom:28px;flex-wrap:wrap;">
+    <button class="btn btn-outline" onclick="clearForm()">🗑 Kosongkan</button>
+    <button class="btn btn-outline btn-sm" id="saveAddBtn" onclick="saveCase(true)" style="background:#fff;color:var(--teal2);border-color:var(--teal2);">💾 Simpan + Tambah Kes Lain (Tarikh Sama)</button>
+    <button class="btn btn-primary" id="saveBtn" onclick="saveCase(false)">💾 Simpan &amp; Selesai</button>
+  </div>
+</div>
+
+<!-- ══════════ SSI UPDATE ══════════ -->
+<div class="page" id="page-ssi">
+  <div class="abar">
+    <span style="font-weight:600;font-size:.86rem;">🔴 Update SSI — Kes Dalam Pantauan</span>
+  </div>
+
+  <div class="alert alert-info">
+    Senarai kes surgery yang <strong>masih dalam tempoh surveillance</strong>. Klik <strong>Update SSI</strong> jika SSI berlaku pada kes tersebut.
+  </div>
+
+  <!-- Filter -->
+  <div class="card">
+    <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;">
+      <div class="fg" style="flex-direction:row;align-items:center;gap:6px;">
+        <label style="white-space:nowrap;font-size:.76rem;font-weight:500;">Jabatan:</label>
+        <select id="ssiFilterDept" onchange="renderSSIPage()" style="padding:5px 9px;border:1px solid var(--border);border-radius:6px;font-size:.76rem;"></select>
+      </div>
+      <div class="fg" style="flex-direction:row;align-items:center;gap:6px;">
+        <label style="white-space:nowrap;font-size:.76rem;font-weight:500;">Status:</label>
+        <select id="ssiFilterStatus" onchange="renderSSIPage()" style="padding:5px 9px;border:1px solid var(--border);border-radius:6px;font-size:.76rem;">
+          <option value="pending">Dalam Pantauan (Belum SSI)</option>
+          <option value="ssi">Sudah Ada SSI</option>
+          <option value="all">Semua</option>
+        </select>
+      </div>
+      <input type="text" id="ssiFilterSearch" oninput="renderSSIPage()" placeholder="Cari nama / No. IC..." style="padding:5px 9px;border:1px solid var(--border);border-radius:6px;font-size:.76rem;width:160px;">
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="tw">
+      <table>
+        <thead><tr>
+          <th>#</th><th>Nama</th><th>No. IC</th><th>Jabatan</th>
+          <th>Tarikh Surgery</th><th>Surgery Performed</th>
+          <th>Surveillance</th><th>Hari Tinggal</th><th>Status SSI</th><th>Tindakan</th>
+        </tr></thead>
+        <tbody id="ssiTbl"></tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<!-- SSI UPDATE MODAL -->
+<div class="overlay" id="ssiUpdateOv">
+  <div class="modal" style="max-width:720px;">
+    <div class="mhdr" style="background:#8e44ad;">
+      <h2>🔴 Borang SSI — <span id="ssiModalName"></span></h2>
+      <button class="xbtn" onclick="closeSsiModal()">✕</button>
+    </div>
+    <div class="mbdy" style="padding:0;">
+
+      <!-- PRINT HEADER (same as original form) -->
+      <div style="padding:14px 16px 0;">
+        <div style="text-align:center;font-size:.88rem;font-weight:700;margin-bottom:2px;">Surgical Site Infection (SSI) Data Collection Form</div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;border:1px solid #ccc;font-size:.78rem;margin-bottom:10px;">
+          <div style="padding:5px 8px;border-right:1px solid #ccc;"><b>Hospital:</b> <span id="sm_hosp"></span></div>
+          <div style="padding:5px 8px;"><b>Department:</b> <span id="sm_dept"></span></div>
+        </div>
+      </div>
+
+      <div style="padding:0 16px 16px;max-height:70vh;overflow-y:auto;">
+
+        <!-- PATIENT DETAIL (read-only display) -->
+        <div style="font-size:.7rem;font-weight:700;background:#2c3e50;color:#fff;padding:5px 10px;letter-spacing:.5px;">PATIENT DETAIL</div>
+        <div style="border:1px solid #ddd;margin-bottom:8px;">
+          <div style="display:grid;grid-template-columns:1fr 1fr;font-size:.78rem;">
+            <div style="padding:5px 8px;border-right:1px solid #ddd;border-bottom:1px solid #ddd;"><span style="color:var(--muted);font-size:.68rem;">NAME</span><br><strong id="sm_name"></strong></div>
+            <div style="padding:5px 8px;border-bottom:1px solid #ddd;"><span style="color:var(--muted);font-size:.68rem;">RACE</span><br><span id="sm_race"></span></div>
+            <div style="padding:5px 8px;border-right:1px solid #ddd;border-bottom:1px solid #ddd;"><span style="color:var(--muted);font-size:.68rem;">AGE / GENDER</span><br><span id="sm_age"></span></div>
+            <div style="padding:5px 8px;border-bottom:1px solid #ddd;"><span style="color:var(--muted);font-size:.68rem;">NO. IC / PASPORT</span><br><span id="sm_mrn"></span></div>
+            <div style="padding:5px 8px;border-right:1px solid #ddd;"><span style="color:var(--muted);font-size:.68rem;">DATE OF SURGERY</span><br><span id="sm_sdate"></span></div>
+            <div style="padding:5px 8px;"><span style="color:var(--muted);font-size:.68rem;">SURGERY PERFORMED</span><br><strong id="sm_sp"></strong></div>
+          </div>
+        </div>
+
+        <!-- DATE OF READMISSION -->
+        <div style="border:1px solid #ddd;margin-bottom:8px;font-size:.78rem;">
+          <div style="display:grid;grid-template-columns:1fr 1fr;">
+            <div style="padding:6px 8px;border-right:1px solid #ddd;">
+              <div style="font-size:.68rem;color:var(--muted);margin-bottom:3px;">DATE OF READMISSION</div>
+              <input type="date" id="su_readmit" style="width:100%;border:1px solid var(--border);border-radius:5px;padding:4px 7px;font-size:.78rem;">
+            </div>
+            <div style="padding:6px 8px;">
+              <div style="font-size:.68rem;color:var(--muted);margin-bottom:3px;">SURGERY START / END TIME</div>
+              <span id="sm_times" style="font-size:.78rem;"></span>
+            </div>
+          </div>
+        </div>
+
+        <!-- SURGERY INFO -->
+        <div style="border:1px solid #ddd;margin-bottom:8px;font-size:.78rem;">
+          <div style="display:grid;grid-template-columns:1fr 1fr 1fr;">
+            <div style="padding:5px 8px;border-right:1px solid #ddd;"><span style="color:var(--muted);font-size:.68rem;">TYPE OF SURGERY</span><br><span id="sm_stype"></span></div>
+            <div style="padding:5px 8px;border-right:1px solid #ddd;"><span style="color:var(--muted);font-size:.68rem;">PRIMARY SURGEON</span><br><span id="sm_surgeon"></span></div>
+            <div style="padding:5px 8px;"><span style="color:var(--muted);font-size:.68rem;">DURATION</span><br><span id="sm_dur"></span></div>
+          </div>
+        </div>
+
+        <!-- PRE-OPERATIVE (read-only) -->
+        <div style="font-size:.7rem;font-weight:700;background:var(--teal2);color:#fff;padding:5px 10px;letter-spacing:.5px;">PRE-OPERATIVE</div>
+        <div style="border:1px solid #ddd;margin-bottom:8px;font-size:.78rem;">
+          <div style="display:grid;grid-template-columns:1fr 1fr;">
+            <div style="padding:5px 8px;border-right:1px solid #ddd;border-bottom:1px solid #ddd;"><span style="color:var(--muted);font-size:.68rem;">DIAGNOSIS</span><br><span id="sm_diag"></span></div>
+            <div style="padding:5px 8px;border-bottom:1px solid #ddd;"><span style="color:var(--muted);font-size:.68rem;">DATE OF ADMISSION</span><br><span id="sm_admit"></span></div>
+            <div style="padding:5px 8px;border-right:1px solid #ddd;border-bottom:1px solid #ddd;"><span style="color:var(--muted);font-size:.68rem;">BMI</span><br><span id="sm_bmi"></span></div>
+            <div style="padding:5px 8px;border-bottom:1px solid #ddd;"><span style="color:var(--muted);font-size:.68rem;">DIABETES MELLITUS</span><br><span id="sm_dm"></span></div>
+            <div style="padding:5px 8px;border-right:1px solid #ddd;border-bottom:1px solid #ddd;"><span style="color:var(--muted);font-size:.68rem;">ANTIBIOTIC PROPHYLAXIS</span><br><span id="sm_preabx"></span></div>
+            <div style="padding:5px 8px;border-bottom:1px solid #ddd;"><span style="color:var(--muted);font-size:.68rem;">BATHING</span><br><span id="sm_bathing"></span></div>
+            <div style="padding:5px 8px;border-right:1px solid #ddd;"><span style="color:var(--muted);font-size:.68rem;">HAIR REMOVAL</span><br><span id="sm_hair"></span></div>
+            <div style="padding:5px 8px;"><span style="color:var(--muted);font-size:.68rem;">SMOKING / VAPING</span><br><span id="sm_smoke"></span></div>
+          </div>
+          <div style="padding:5px 8px;border-top:1px solid #ddd;"><span style="color:var(--muted);font-size:.68rem;">IMMUNOSUPPRESSANT THERAPY</span><br><span id="sm_immuno"></span></div>
+        </div>
+
+        <!-- INTRA-OPERATIVE (read-only) -->
+        <div style="font-size:.7rem;font-weight:700;background:var(--amber);color:#fff;padding:5px 10px;letter-spacing:.5px;">INTRA-OPERATIVE</div>
+        <div style="border:1px solid #ddd;margin-bottom:8px;font-size:.78rem;">
+          <div style="display:grid;grid-template-columns:1fr 1fr;">
+            <div style="padding:5px 8px;border-right:1px solid #ddd;border-bottom:1px solid #ddd;"><span style="color:var(--muted);font-size:.68rem;">SKIN PREPARATION (1st Layer)</span><br><span id="sm_skin1"></span></div>
+            <div style="padding:5px 8px;border-bottom:1px solid #ddd;"><span style="color:var(--muted);font-size:.68rem;">SKIN PREPARATION (2nd Layer)</span><br><span id="sm_skin2"></span></div>
+            <div style="padding:5px 8px;border-right:1px solid #ddd;border-bottom:1px solid #ddd;"><span style="color:var(--muted);font-size:.68rem;">ANTIBIOTIC PROPHYLAXIS</span><br><span id="sm_intraabx"></span></div>
+            <div style="padding:5px 8px;border-bottom:1px solid #ddd;"><span style="color:var(--muted);font-size:.68rem;">TIME OF ADMINISTRATION</span><br><span id="sm_abxtime"></span></div>
+            <div style="padding:5px 8px;border-right:1px solid #ddd;"><span style="color:var(--muted);font-size:.68rem;">REDOSING / REASON</span><br><span id="sm_redose"></span></div>
+            <div style="padding:5px 8px;"><span style="color:var(--muted);font-size:.68rem;">DRAIN</span><br><span id="sm_drain"></span></div>
+          </div>
+        </div>
+
+        <!-- POST-OPERATIVE (read-only) -->
+        <div style="font-size:.7rem;font-weight:700;background:var(--red);color:#fff;padding:5px 10px;letter-spacing:.5px;">POST-OPERATIVE</div>
+        <div style="border:1px solid #ddd;margin-bottom:8px;font-size:.78rem;">
+          <div style="display:grid;grid-template-columns:1fr 1fr;">
+            <div style="padding:5px 8px;border-right:1px solid #ddd;"><span style="color:var(--muted);font-size:.68rem;">UNCONTROLLED SUGAR (&gt;11.1 mmol/L)</span><br><span id="sm_sugar"></span></div>
+            <div style="padding:5px 8px;"><span style="color:var(--muted);font-size:.68rem;">DURATION OF ANTIBIOTICS</span><br><span id="sm_abxdur"></span></div>
+          </div>
+        </div>
+
+        <!-- TYPE OF SSI — EDITABLE -->
+        <div style="font-size:.7rem;font-weight:700;background:#8e44ad;color:#fff;padding:5px 10px;letter-spacing:.5px;">TYPE OF SSI ✏️ (Boleh Edit)</div>
+        <div style="border:2px solid #8e44ad;border-radius:0 0 7px 7px;padding:12px;margin-bottom:8px;background:#fdf8ff;">
+
+          <div class="grid2" style="margin-bottom:10px;">
+            <div class="fg">
+              <label style="color:#8e44ad;">Day of SSI Identified — Post-op Day *</label>
+              <input type="number" id="su_ssiday" min="1" max="365" placeholder="e.g. 5, 10, 21...">
+            </div>
+            <div class="fg">
+              <label style="color:#8e44ad;">Site of SSI</label>
+              <input type="text" id="su_ssisite" placeholder="e.g. Surgical wound / Incision site">
+            </div>
+          </div>
+
+          <div class="fg" style="margin-bottom:10px;">
+            <label style="color:#8e44ad;">Klasifikasi SSI *</label>
+            <div class="chk-grp">
+              <label class="chk-item"><input type="radio" name="su_class" value="Superficial Incisional"> Superficial Incisional</label>
+              <label class="chk-item"><input type="radio" name="su_class" value="Deep Incisional"> Deep Incisional</label>
+              <label class="chk-item"><input type="radio" name="su_class" value="Organ/Space"> Organ/Space</label>
+            </div>
+          </div>
+
+          <div class="grid2" style="margin-bottom:10px;">
+            <div class="fg">
+              <label style="color:#8e44ad;">Diagnosis</label>
+              <div class="chk-grp">
+                <label class="chk-item"><input type="radio" name="su_diag" value="Clinical"> Clinical</label>
+                <label class="chk-item"><input type="radio" name="su_diag" value="Lab Confirmed"> Lab Confirmed</label>
+              </div>
+            </div>
+            <div class="fg">
+              <label style="color:#8e44ad;">If Lab Confirmed — Type of Organism</label>
+              <input type="text" id="su_org" placeholder="e.g. Staphylococcus aureus, E. coli...">
+            </div>
+          </div>
+
+          <div class="fg">
+            <label style="color:#8e44ad;">Catatan / Management</label>
+            <textarea id="su_notes" rows="2" placeholder="Tindakan, rawatan, atau maklumat tambahan..."></textarea>
+          </div>
+        </div>
+
+        <div id="su_msg" style="font-size:.76rem;margin-top:4px;"></div>
+      </div>
+    </div>
+    <div class="mftr" style="background:#f9f4ff;">
+      <button class="btn btn-outline btn-sm" onclick="closeSsiModal()">Batal</button>
+      <button class="btn btn-outline btn-sm" onclick="printSsiModal()">🖨 Cetak Borang</button>
+      <button class="btn btn-sm" style="background:#8e44ad;color:#fff;" onclick="saveSsiUpdate()">🔴 Simpan SSI &amp; Sync ke Sheets</button>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════ RECORDS ══════════ -->
+<div class="page" id="page-records">
+  <div class="abar">
+    <span style="font-weight:600;font-size:.86rem;">Semua Kes Surgery</span>
+    <div style="margin-left:auto;display:flex;gap:6px;flex-wrap:wrap;">
+      <select id="fDept" onchange="renderRecords()" style="padding:5px 8px;border:1px solid var(--border);border-radius:6px;font-size:.74rem;"></select>
+      <select id="fSSI" onchange="renderRecords()" style="padding:5px 8px;border:1px solid var(--border);border-radius:6px;font-size:.74rem;">
+        <option value="">Semua Kes</option><option value="ssi">Ada SSI Sahaja</option><option value="none">Tiada SSI</option>
+      </select>
+      <input type="text" id="fSearch" oninput="renderRecords()" placeholder="Cari nama / No. IC..." style="padding:5px 8px;border:1px solid var(--border);border-radius:6px;font-size:.74rem;width:150px;">
+    </div>
+  </div>
+  <div class="card">
+    <div class="tw">
+      <table>
+        <thead><tr><th>#</th><th>Nama</th><th>No. IC</th><th>Jabatan</th><th>Tarikh</th><th>Surgery Performed</th><th>Prosedur</th><th>SSI</th><th>Organisma</th><th></th></tr></thead>
+        <tbody id="recTbl"></tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════ RUJUKAN ══════════ -->
+<div class="page" id="page-rujukan">
+  <div class="abar">
+    <span style="font-weight:600;font-size:.86rem;">📚 Rujukan &amp; Panduan SSI</span>
+    <div style="margin-left:auto;display:flex;gap:7px;" id="refAddBtn" style="display:none;">
+      <button class="btn btn-primary btn-sm" onclick="openAddRef()">+ Tambah Rujukan</button>
+    </div>
+  </div>
+
+  <div class="alert alert-info" style="margin-bottom:12px;">
+    Akses dokumen rujukan SSI — Garis Panduan KKM, SOP Hospital, dan artikel berkaitan.
+    Klik pautan untuk buka dokumen dalam Google Drive.
+  </div>
+
+  <!-- Drive folder embed (if configured) -->
+  <div id="driveFolderSection" style="display:none;margin-bottom:14px;">
+    <div class="card">
+      <div class="card-title">📂 Google Drive — Folder Rujukan</div>
+      <iframe id="driveFolderFrame" class="drive-embed" src="" allowfullscreen></iframe>
+      <p style="font-size:.68rem;color:var(--muted);margin-top:6px;">
+        Jika folder tidak muncul, klik
+        <a id="driveFolderLink" href="#" target="_blank" style="color:var(--teal);font-weight:600;">buka di Google Drive ↗</a>
+      </p>
+    </div>
+  </div>
+
+  <!-- Reference list -->
+  <div class="card">
+    <div class="card-title">📋 Senarai Rujukan</div>
+    <div id="refList" style="display:flex;flex-direction:column;gap:8px;"></div>
+    <div id="refEmpty" class="empty" style="display:none;"><div class="ei">📂</div><p>Tiada rujukan. Coordinator boleh tambah rujukan.</p></div>
+  </div>
+
+  <!-- Coordinator: configure Drive folder + add refs -->
+  <div id="refAdminSection" style="display:none;">
+    <div class="card" style="border-left:4px solid var(--teal);">
+      <div class="card-title">⚙️ Tetapan Rujukan (Coordinator Sahaja)</div>
+
+      <div class="fg" style="margin-bottom:12px;">
+        <label>URL Folder Google Drive (untuk embed)</label>
+        <div style="display:flex;gap:7px;">
+          <input type="text" id="driveFolderUrl" placeholder="https://drive.google.com/drive/folders/XXXXX?usp=sharing"
+            style="flex:1;font-size:.72rem;font-family:monospace;" value="">
+          <button class="btn btn-green btn-sm" onclick="saveDriveFolder()">💾 Simpan</button>
+        </div>
+        <p style="font-size:.66rem;color:var(--muted);margin-top:4px;">
+          Untuk embed: klik kanan folder Drive → "Get link" → set to "Anyone with link" → copy URL
+        </p>
+      </div>
+
+      <div style="border-top:1px solid var(--border);padding-top:12px;">
+        <div style="font-size:.72rem;font-weight:600;color:var(--teal);margin-bottom:10px;">+ Tambah Pautan Rujukan Baru</div>
+        <div class="grid2" style="margin-bottom:8px;">
+          <div class="fg">
+            <label>Tajuk Dokumen *</label>
+            <input type="text" id="ref_title" placeholder="e.g. SSI Prevention Guideline 2023 KKM">
+          </div>
+          <div class="fg">
+            <label>Kategori</label>
+            <select id="ref_cat">
+              <option value="Guideline">📘 Guideline / Panduan</option>
+              <option value="SOP">📋 SOP / Prosedur</option>
+              <option value="Article">📄 Artikel / Jurnal</option>
+              <option value="Form">📝 Borang / Form</option>
+              <option value="Other">📎 Lain-lain</option>
+            </select>
+          </div>
+        </div>
+        <div class="grid2" style="margin-bottom:8px;">
+          <div class="fg">
+            <label>URL Dokumen (Google Drive / Link) *</label>
+            <input type="text" id="ref_url" placeholder="https://drive.google.com/file/d/XXXXX/view">
+          </div>
+          <div class="fg">
+            <label>Penerangan (optional)</label>
+            <input type="text" id="ref_desc" placeholder="e.g. Versi 2023, KKM Malaysia">
+          </div>
+        </div>
+        <button class="btn btn-primary btn-sm" onclick="addRef()">+ Tambah Rujukan</button>
+        <div id="ref_msg" style="margin-top:6px;font-size:.74rem;"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════ SETTINGS ══════════ -->
+<div class="page" id="page-settings">
+
+  <!-- Sheets Sync Status -->
+  <div class="card" style="border-left:4px solid var(--green);">
+    <div class="card-title">🔗 Status Sync ke Google Sheets</div>
+
+    <!-- Status boxes -->
+    <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin-bottom:14px;" id="syncStatusGrid">
+      <div style="background:var(--pre);border-radius:8px;padding:10px;text-align:center;">
+        <div style="font-size:1.4rem;font-weight:700;font-family:'DM Mono',monospace;color:var(--teal);" id="syncTotal">0</div>
+        <div style="font-size:.66rem;color:var(--muted);margin-top:2px;">Total Kes Tempatan</div>
+      </div>
+      <div style="background:#eafaf1;border-radius:8px;padding:10px;text-align:center;">
+        <div style="font-size:1.4rem;font-weight:700;font-family:'DM Mono',monospace;color:var(--green);" id="syncOkCount">0</div>
+        <div style="font-size:.66rem;color:var(--muted);margin-top:2px;">✅ Berjaya Sync</div>
+      </div>
+      <div style="background:#fdecea;border-radius:8px;padding:10px;text-align:center;">
+        <div style="font-size:1.4rem;font-weight:700;font-family:'DM Mono',monospace;color:var(--red);" id="syncFailCount">0</div>
+        <div style="font-size:.66rem;color:var(--muted);margin-top:2px;">❌ Gagal / Belum Sync</div>
+      </div>
+    </div>
+
+    <!-- Pending sync warning -->
+    <div id="pendingSyncWarn" style="display:none;background:#fdecea;border:1px solid #f5b7b1;border-radius:8px;padding:10px 13px;margin-bottom:12px;font-size:.78rem;">
+      <strong style="color:var(--red);">⚠️ Ada kes yang belum masuk Google Sheets!</strong><br>
+      <span style="color:#666;">Data sudah tersimpan dalam app. Klik untuk hantar semula ke Sheets.</span>
+      <div style="margin-top:8px;display:flex;gap:7px;flex-wrap:wrap;">
+        <button class="btn btn-danger btn-sm" onclick="retrySyncAll()" id="retryBtn">🔄 Cuba Sync Semula</button>
+        <button class="btn btn-outline btn-sm" onclick="diagnoseSyncFail()">🔍 Diagnosis Kenapa Gagal</button>
+      </div>
+    </div>
+
+    <!-- Connection + Diagnostic -->
+    <div style="background:var(--pre);border-radius:8px;padding:12px;margin-bottom:10px;">
+      <div style="font-size:.74rem;font-weight:600;color:var(--teal);margin-bottom:8px;">🔌 Test &amp; Diagnosis Sambungan</div>
+      <div id="connTestResult" style="font-size:.76rem;margin-bottom:8px;min-height:20px;"></div>
+
+      <!-- Step-by-step diagnosis result -->
+      <div id="diagSteps" style="display:none;margin-bottom:10px;font-size:.74rem;">
+        <div style="font-weight:600;color:var(--teal);margin-bottom:5px;">📋 Hasil Diagnosis:</div>
+        <div id="diagStep1" style="padding:4px 8px;border-radius:5px;margin-bottom:3px;">⬜ Step 1: Test GET ping...</div>
+        <div id="diagStep2" style="padding:4px 8px;border-radius:5px;margin-bottom:3px;">⬜ Step 2: Test POST (hantar data ujian)...</div>
+        <div id="diagStep3" style="padding:4px 8px;border-radius:5px;margin-bottom:3px;">⬜ Step 3: Semak response Apps Script...</div>
+        <div id="diagResult" style="margin-top:6px;padding:8px 10px;border-radius:6px;background:#fff;border:1px solid var(--border);font-family:monospace;font-size:.68rem;display:none;word-break:break-all;"></div>
+      </div>
+
+      <div style="display:flex;gap:7px;flex-wrap:wrap;">
+        <button class="btn btn-green btn-sm" onclick="testConnDetailed()">🔌 Test Sambungan</button>
+        <button class="btn btn-amber btn-sm" onclick="runFullDiagnosis()">🔍 Diagnosis Penuh (POST)</button>
+        <button class="btn btn-outline btn-sm" onclick="pullSurgTypes()">🔄 Sync Jenis Surgery</button>
+      </div>
+    </div>
+
+    <!-- URL field (hidden by default, show only if needed) -->
+    <details style="margin-top:6px;" id="urlDetails">
+      <summary style="font-size:.72rem;color:var(--muted);cursor:pointer;padding:4px 0;">⚙️ Tukar Apps Script URL (jika URL perlu dikemaskini)</summary>
+      <div style="margin-top:10px;">
+        <div style="background:#fff8e1;border:1px solid #ffe082;border-radius:7px;padding:9px 11px;margin-bottom:10px;font-size:.73rem;line-height:1.6;">
+          <strong>Bila perlu update URL:</strong><br>
+          • Apps Script di-deploy semula (New Deployment)<br>
+          • URL lama expired atau tidak berfungsi<br><br>
+          <strong>Cara dapat URL baru:</strong><br>
+          1. Buka Google Sheets → Extensions → Apps Script<br>
+          2. Deploy → Manage deployments → Edit (pencil icon)<br>
+          3. Version: New version → Deploy → copy URL baru<br>
+          4. Pastikan "Who has access: <strong>Anyone</strong>"
+        </div>
+        <div class="fg" style="margin-bottom:10px;">
+          <label style="font-size:.72rem;">Apps Script Web App URL</label>
+          <input type="text" id="scriptUrl" placeholder="https://script.google.com/macros/s/XXXXX/exec"
+            style="font-size:.70rem;font-family:monospace;" oninput="onUrlChange()">
+        </div>
+        <button class="btn btn-primary btn-sm" onclick="saveUrl()">💾 Simpan URL Baru</button>
+        <div id="urlSaveMsg" style="margin-top:5px;font-size:.73rem;"></div>
+      </div>
+    </details>
+  </div>
+
+  <!-- Surgery Types -->
+  <div class="card">
+    <div class="card-title">🔪 Jenis Surgery (Surgery Performed)</div>
+    <div id="surgList" style="display:flex;flex-direction:column;gap:6px;margin-bottom:12px;max-height:320px;overflow-y:auto;"></div>
+    <div style="background:var(--pre);border-radius:8px;padding:12px;">
+      <div style="font-size:.72rem;font-weight:600;color:var(--teal);margin-bottom:8px;">+ Tambah Jenis Surgery Baru</div>
+      <div class="grid2" style="margin-bottom:8px;">
+        <div class="fg"><label>Nama Kategori *</label>
+          <input type="text" id="newSP" placeholder="e.g. EL OMF Elective, General Surgery...">
+        </div>
+        <div class="fg"><label>Contoh Prosedur (Hint)</label>
+          <input type="text" id="newHint" placeholder="e.g. Appendicectomy / Cholecystectomy...">
+        </div>
+      </div>
+      <button class="btn btn-primary btn-sm" onclick="addSurgType()">+ Tambah</button>
+    </div>
+  </div>
+
+  <!-- Departments -->
+  <div class="card">
+    <div class="card-title">🏥 Jabatan & Kata Laluan</div>
+    <p style="font-size:.74rem;color:var(--muted);margin-bottom:10px;">Tambah jabatan baru — kata laluan default akan ditetapkan secara automatik. Tukar kata laluan selepas itu.</p>
+    <div id="deptList" style="display:flex;flex-direction:column;gap:6px;margin-bottom:12px;"></div>
+    <div style="background:var(--pre);border-radius:8px;padding:12px;">
+      <div style="font-size:.72rem;font-weight:600;color:var(--teal);margin-bottom:8px;">+ Tambah Jabatan Baru</div>
+      <div class="grid2" style="margin-bottom:8px;">
+        <div class="fg"><label>Nama Jabatan *</label>
+          <input type="text" id="newDept" placeholder="e.g. Paediatric Surgery...">
+        </div>
+        <div class="fg"><label>Kata Laluan</label>
+          <input type="text" id="newDeptPw" placeholder="Minimum 6 aksara (default: dept2025)">
+        </div>
+      </div>
+      <button class="btn btn-primary btn-sm" onclick="addDept()">+ Tambah Jabatan</button>
+    </div>
+  </div>
+
+
+  <!-- Debug / Recovery (Coordinator only) -->
+  <div class="card" id="debugSection" style="border-left:4px solid var(--amber);display:none;">
+    <div class="card-title" style="color:var(--amber);">🔍 Semak & Pemulihan Data</div>
+    <p style="font-size:.74rem;color:var(--muted);margin-bottom:10px;">Tengok status semua kes dalam app dan hantar semula ke Sheets.</p>
+    <button class="btn btn-amber btn-sm" onclick="runDebug()" style="margin-bottom:10px;">🔍 Semak Status Kes</button>
+    <div id="debugOut" style="font-size:.73rem;line-height:1.7;"></div>
+  </div>
+
+  <!-- Danger -->
+  <div class="card" id="dangerSection" style="border-color:#fdecea;">
+    <div class="card-title" style="color:var(--red);">⚠ Zon Bahaya</div>
+    <p style="font-size:.75rem;color:var(--muted);margin-bottom:9px;">Padam semua data tempatan (tidak padam data dalam Sheets).</p>
+    <button class="btn btn-danger btn-sm" onclick="clearAll()">🗑 Padam Data Tempatan</button>
+  </div>
+</div>
+
+<!-- PRINT OVERLAY -->
+<div class="print-ov" id="printOv">
+  <div class="pform">
+    <div class="pfhdr">
+      <span style="font-weight:600;font-size:.88rem;">Borang Surgery — Pratonton Cetak</span>
+      <div style="display:flex;gap:7px;">
+        <button class="btn btn-outline btn-sm" onclick="window.print()" style="color:#fff;border-color:#fff;">🖨 Cetak</button>
+        <button class="xbtn" onclick="closePrint()">✕</button>
+      </div>
+    </div>
+    <div class="pfbdy" id="pBody"></div>
+  </div>
+</div>
+
+<!-- VIEW MODAL -->
+<div class="overlay" id="viewOv">
+  <div class="modal">
+    <div class="mhdr"><h2>Detail Kes</h2><button class="xbtn" onclick="closeView()">✕</button></div>
+    <div class="mbdy" id="viewBody"></div>
+    <div class="mftr">
+      <button class="btn btn-outline btn-sm" onclick="closeView()">Tutup</button>
+      <button class="btn btn-primary btn-sm" id="vPrintBtn">🖨 Cetak</button>
+    </div>
+  </div>
+</div>
+
+<!-- ADD SURGERY TYPE MODAL -->
+<div class="overlay" id="addSurgOv">
+  <div class="modal" style="max-width:460px;">
+    <div class="mhdr"><h2>+ Tambah Jenis Surgery Baru</h2><button class="xbtn" onclick="closeAddSurg()">✕</button></div>
+    <div class="mbdy">
+      <div class="fg" style="margin-bottom:10px;">
+        <label>Surgery Performed (Kategori) *</label>
+        <input type="text" id="as_sp" placeholder="e.g. Minor Oral Surgery, General Surgery...">
+      </div>
+      <div class="fg">
+        <label>Contoh Prosedur (Hint — optional)</label>
+        <input type="text" id="as_hint" placeholder="e.g. Appendicectomy / Cholecystectomy...">
+      </div>
+      <div id="as_msg" style="margin-top:8px;font-size:.75rem;"></div>
+    </div>
+    <div class="mftr">
+      <button class="btn btn-outline btn-sm" onclick="closeAddSurg()">Batal</button>
+      <button class="btn btn-primary btn-sm" onclick="confirmAddSurg()">💾 Simpan</button>
+    </div>
+  </div>
+</div>
+
+<script>
+// ═══════════ DATA ═══════════
+const DEF_DEPTS=['Surgical','OMFS','Orthopaedic','O&G'];
+const DEF_SURG=[
+  // SURGICAL
+  {id:1,  sp:'Colectomy +/- Proctocolectomy',  dept:'Surgical', hint:'Open / Laparoscopic colectomy, Hartmann procedure'},
+  {id:2,  sp:'Mastectomy +/- AC',              dept:'Surgical', hint:'Simple mastectomy / Modified radical mastectomy / Axillary clearance'},
+  {id:3,  sp:'Hernioplasty',                   dept:'Surgical', hint:'Inguinal hernia repair / Incisional hernia repair / Umbilical hernia'},
+  {id:4,  sp:'Thyroid Surgery',                dept:'Surgical', hint:'Thyroidectomy / Hemithyroidectomy / Total thyroidectomy'},
+  {id:5,  sp:'Laparoscopic/Open Cholecystectomy', dept:'Surgical', hint:'Laparoscopic cholecystectomy / Open cholecystectomy'},
+  {id:6,  sp:'AVF',                            dept:'Surgical', hint:'Arteriovenous fistula creation'},
+  // OMFS
+  {id:7,  sp:'EL OMF Trauma',                  dept:'OMFS',     hint:'Open Reduction & Internal Fixation (ORIF) / Mandible fracture'},
+  {id:8,  sp:'Minor Oral Surgery',             dept:'OMFS',     hint:'Surgical removal impacted teeth / Extraction / Alveolectomy'},
+  // O&G
+  {id:9,  sp:'Open TAH +/- BSO',               dept:'O&G',      hint:'Total Abdominal Hysterectomy +/- Bilateral Salpingo-Oophorectomy'},
+  {id:10, sp:'EL LSCS',                        dept:'O&G',      hint:'Elective Lower Segment Caesarean Section'},
+  // ORTHOPAEDIC
+  {id:11, sp:'Primary Knee Arthroplasty',      dept:'Orthopaedic', hint:'Total Knee Replacement (TKR) / Unicompartmental Knee Replacement'},
+  {id:12, sp:'Primary Hip Arthroplasty',       dept:'Orthopaedic', hint:'Total Hip Replacement (THR) / Hemiarthroplasty'},
+];
+
+function gd(k,def){try{const v=localStorage.getItem('ssi_'+k);return v?JSON.parse(v):def;}catch(e){return def;}}
+function sd(k,v){localStorage.setItem('ssi_'+k,JSON.stringify(v));}
+function getDepts(){return gd('depts',DEF_DEPTS);}
+function getCases(){return gd('cases',[]);}
+function getSurgTypes(){return gd('surgTypes',DEF_SURG);}
+function getUrl(){
+  // URL hardcoded — tidak perlu paste lagi
+  const HARDCODED_URL = 'https://script.google.com/macros/s/AKfycbwW8byXlYv-vBB8S0bPkBSQ-b7ue0-EqsOOLpHdP8G79yv-mLgeWi5vGVyCHdKeps5d-w/exec';
+  return localStorage.getItem('ssi_url') || HARDCODED_URL;
+}
+
+// ═══════════ NAV ═══════════
+function showPage(id,btn){
+  document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
+  document.querySelectorAll('.nav-tab').forEach(t=>t.classList.remove('active'));
+  document.getElementById('page-'+id).classList.add('active');
+  if(btn) btn.classList.add('active');
+  if(id==='dashboard') renderDashboard();
+  if(id==='records') renderRecords();
+  if(id==='ssi') renderSSIPage();
+  if(id==='settings') renderSettings();
+  if(id==='rujukan') renderRujukan();
+}
+
+// ═══════════ SHEETS API ═══════════
+function setSyncBar(msg,type){
+  const b=document.getElementById('syncBar');
+  b.textContent=msg; b.className=type;
+  if(type==='ok') setTimeout(()=>{b.className='';b.style.display='none';},3000);
+}
+
+async function callSheets(payload, retries=3){
+  const url=getUrl(); if(!url) return null;
+  for(let attempt=1; attempt<=retries; attempt++){
+    try{
+      const r=await fetch(url,{
+        method:'POST',
+        mode:'cors',
+        headers:{'Content-Type':'text/plain;charset=utf-8'},
+        body:JSON.stringify(payload),
+        signal:(()=>{const c=new AbortController();setTimeout(()=>c.abort(),12000);return c.signal;})()
+      });
+      if(!r.ok) return {success:false, error:'HTTP '+r.status};
+      const text=await r.text();
+      try{ return JSON.parse(text); }
+      catch(e){ return {success:false, error:'Invalid JSON response'}; }
+    }catch(e){
+      if(attempt<retries){
+        await new Promise(r=>setTimeout(r, attempt*2000)); // 2s, 4s delay
+        continue;
+      }
+      console.error('Sheets error (all retries failed):',e);
+      return {success:false, error:e.message};
+    }
+  }
+  return {success:false, error:'Semua percubaan gagal'};
+}
+
+async function testConn(){
+  const url=getUrl(); if(!url){alert('Sila isi URL dulu.');return;}
+  const btn=event.target; btn.textContent='⏳...'; btn.disabled=true;
+  try{
+    const r=await fetch(url+'?action=ping');
+    const d=await r.json();
+    if(d.success){
+      alert('✅ Berjaya! Sheets connected.\n'+d.message);
+      document.getElementById('sheetsBadge').textContent='🟢 Sheets';
+      document.getElementById('sheetsBadge').classList.add('connected');
+    } else alert('❌ Error: '+d.error);
+  }catch(e){alert('❌ Gagal sambung.\nPastikan:\n1. URL betul\n2. Deploy sebagai "Anyone"\n\n'+e.message);}
+  btn.textContent='🔌 Test'; btn.disabled=false;
+}
+
+async function pullSurgTypes(){
+  const url=getUrl(); if(!url){alert('Sila isi URL dulu.');return;}
+  setSyncBar('⏳ Pulling jenis surgery dari Sheets...','syncing');
+  try{
+    const r=await fetch(url+'?action=getSurgTypes');
+    const d=await r.json();
+    if(d.success && d.types?.length){
+      sd('surgTypes',d.types);
+      renderSurgTypeDropdown(); renderSurgList();
+      setSyncBar('✅ '+d.types.length+' jenis surgery dimuatkan dari Sheets','ok');
+    } else setSyncBar('⚠ Tiada data atau gagal: '+(d.error||''),'err');
+  }catch(e){setSyncBar('❌ Gagal: '+e.message,'err');}
+}
+
+// ═══════════ SURGERY TYPES ═══════════
+function renderSurgTypeDropdown(){
+  const allTypes=getSurgTypes();
+  const user=getCurrentUser();
+  const coord=isCoordinator();
+  const userDept=getUserDept();
+
+  // Filter by dept — coordinator nampak semua, dept user nampak jabatan sendiri sahaja
+  const types = coord ? allTypes : allTypes.filter(t=>!t.dept || t.dept===userDept);
+
+  const sel=document.getElementById('f_surgPerf'); if(!sel) return;
+  const cur=sel.value;
+  sel.innerHTML='<option value="">-- Pilih Surgery Performed --</option>'
+    +types.map(t=>'<option value="'+esc(t.sp)+'" data-hint="'+esc(t.hint||'')+'">'+esc(t.sp)+'</option>').join('');
+  if(cur) sel.value=cur;
+}
+
+function onSurgPerfChange(){
+  const sel=document.getElementById('f_surgPerf');
+  const opt=sel.options[sel.selectedIndex];
+  const hint=opt?.dataset?.hint||'';
+  const el=document.getElementById('procHints'); if(!el) return;
+  if(hint){
+    el.innerHTML=hint.split('/').map(h=>h.trim()).filter(Boolean).map(h=>
+      '<span class="hint-chip" onclick="document.getElementById(\'f_proc\').value=\''+esc(h)+'\'">'+esc(h)+'</span>'
+    ).join('');
+  } else el.innerHTML='';
+}
+
+function renderSurgList(){
+  const types=getSurgTypes();
+  const el=document.getElementById('surgList'); if(!el) return;
+  if(!types.length){el.innerHTML='<p style="font-size:.75rem;color:var(--muted)">Tiada jenis surgery.</p>';return;}
+  el.innerHTML=types.map((t,i)=>
+    '<div style="background:var(--bg);border-radius:7px;padding:8px 10px;margin-bottom:2px;" id="surgRow_'+i+'">'
+    +'<div style="display:flex;align-items:center;gap:7px;">'
+    +'<div style="flex:1;"><div style="font-size:.80rem;font-weight:600;">'+esc(t.sp)+'</div>'
+    +(t.hint?'<div style="font-size:.68rem;color:var(--muted);">'+esc(t.hint)+'</div>':'')+'</div>'
+    +'<button class="btn btn-outline btn-sm" onclick="toggleEditSurg('+i+')">✏️ Edit</button>'
+    +'<button class="btn btn-danger btn-sm" onclick="delSurgType('+i+')">Padam</button>'
+    +'</div>'
+    +'<div id="surgEdit_'+i+'" style="display:none;margin-top:8px;padding-top:8px;border-top:1px solid var(--border);">'
+    +'<div class="grid2" style="gap:8px;margin-bottom:7px;">'
+    +'<div class="fg"><label>Nama Kategori</label>'
+    +'<input type="text" id="sesp_'+i+'" value="'+esc(t.sp)+'"></div>'
+    +'<div class="fg"><label>Contoh Prosedur (Hint)</label>'
+    +'<input type="text" id="sehint_'+i+'" value="'+esc(t.hint||'')+'"></div>'
+    +'</div>'
+    +'<div style="display:flex;gap:6px;">'
+    +'<button class="btn btn-primary btn-sm" onclick="saveSurgEdit('+i+')">💾 Simpan</button>'
+    +'<button class="btn btn-outline btn-sm" onclick="toggleEditSurg('+i+')">Batal</button>'
+    +'</div></div>'
+    +'</div>'
+  ).join('');
+}
+
+function toggleEditSurg(i){
+  const el=document.getElementById('surgEdit_'+i);
+  if(el) el.style.display=el.style.display==='none'?'block':'none';
+}
+
+function saveSurgEdit(i){
+  const sp=document.getElementById('sesp_'+i)?.value.trim();
+  const hint=document.getElementById('sehint_'+i)?.value.trim();
+  if(!sp){alert('Nama kategori tidak boleh kosong.');return;}
+  const types=getSurgTypes();
+  types[i]={...types[i],sp,hint};
+  sd('surgTypes',types);
+  renderSurgList();
+  renderSurgTypeDropdown();
+  if(getUrl()) callSheets({action:'updateSurgType',id:types[i].id,sp,hint});
+}
+
+function addSurgType(){
+  const sp=document.getElementById('newSP').value.trim();
+  const hint=document.getElementById('newHint').value.trim();
+  if(!sp){alert('Sila isi nama kategori.');return;}
+  const types=getSurgTypes();
+  if(types.find(t=>t.sp===sp)){alert('Sudah wujud.');return;}
+  types.push({id:Date.now(),sp,hint});
+  sd('surgTypes',types);
+  document.getElementById('newSP').value='';
+  document.getElementById('newHint').value='';
+  renderSurgList(); renderSurgTypeDropdown();
+  if(getUrl()) callSheets({action:'addSurgType',sp,hint});
+}
+
+function delSurgType(i){
+  if(!confirm('Padam?')) return;
+  const t=getSurgTypes(); t.splice(i,1); sd('surgTypes',t);
+  renderSurgList(); renderSurgTypeDropdown();
+}
+
+function openAddSurg(){
+  document.getElementById('as_sp').value='';
+  document.getElementById('as_hint').value='';
+  document.getElementById('as_msg').textContent='';
+  document.getElementById('addSurgOv').classList.add('open');
+}
+function closeAddSurg(){document.getElementById('addSurgOv').classList.remove('open');}
+
+async function confirmAddSurg(){
+  const sp=document.getElementById('as_sp').value.trim();
+  const hint=document.getElementById('as_hint').value.trim();
+  const msg=document.getElementById('as_msg');
+  if(!sp){msg.innerHTML='<span style="color:var(--red)">Sila isi nama kategori.</span>';return;}
+  const types=getSurgTypes();
+  if(types.find(t=>t.sp===sp)){msg.innerHTML='<span style="color:var(--red)">Sudah wujud.</span>';return;}
+  msg.innerHTML='<span style="color:var(--teal)">⏳ Menyimpan...</span>';
+  types.push({id:Date.now(),sp,hint});
+  sd('surgTypes',types);
+  renderSurgTypeDropdown(); renderSurgList();
+  if(getUrl()){
+    const res=await callSheets({action:'addSurgType',sp,hint});
+    msg.innerHTML=res?.success
+      ?'<span style="color:var(--green)">✅ Disimpan &amp; sync ke Sheets!</span>'
+      :'<span style="color:var(--amber)">⚠ Disimpan tempatan. Gagal sync Sheets.</span>';
+  } else {
+    msg.innerHTML='<span style="color:var(--green)">✅ Disimpan dalam app.</span>';
+  }
+  setTimeout(()=>{
+    const sel=document.getElementById('f_surgPerf');
+    if(sel){sel.value=sp;onSurgPerfChange();}
+    closeAddSurg();
+  },1000);
+}
+
+// ═══════════ FORM ═══════════
+function setToday(){
+  const today=new Date().toISOString().split('T')[0];
+  document.getElementById('f_sdate').value=today;
+  checkDateWarning();
+}
+function setYesterday(){
+  const d=new Date(); d.setDate(d.getDate()-1);
+  document.getElementById('f_sdate').value=d.toISOString().split('T')[0];
+  checkDateWarning();
+}
+function checkDateWarning(){
+  const val=document.getElementById('f_sdate')?.value||'';
+  const warn=document.getElementById('dateWarning');
+  if(!warn) return;
+  const today=new Date().toISOString().split('T')[0];
+  warn.style.display=(val&&val!==today)?'block':'none';
+}
+
+// Batch — same date multiple cases
+let _batchDate=null;
+let _batchCount=0;
+
+function updateBatchInfo(date){
+  _batchDate=date; _batchCount++;
+  const bi=document.getElementById('batchInfo');
+  const bd=document.getElementById('batchDate');
+  const bc=document.getElementById('batchCount');
+  if(bi) bi.style.display='block';
+  if(bd) bd.textContent=fmtD(date);
+  if(bc) bc.textContent=_batchCount;
+}
+
+function clearBatch(){
+  _batchDate=null; _batchCount=0;
+  const bi=document.getElementById('batchInfo');
+  if(bi) bi.style.display='none';
+}
+
+function calcDur(){
+  const tsEl=document.getElementById('f_tstart');
+  const teEl=document.getElementById('f_tend');
+  const durEl=document.getElementById('f_dur');
+  if(!tsEl||!teEl||!durEl) return;
+  const ts=tsEl.value||'';
+  const te=teEl.value||'';
+  if(!ts||!te||ts===''||te==='') return;
+  try{
+    const [sh,sm]=ts.split(':').map(Number);
+    const [eh,em]=te.split(':').map(Number);
+    if(isNaN(sh)||isNaN(sm)||isNaN(eh)||isNaN(em)) return;
+    let mins=(eh*60+em)-(sh*60+sm);
+    if(mins<0) mins+=24*60;
+    durEl.value=mins;
+    durEl.style.color='var(--teal)';
+    durEl.style.fontWeight='600';
+  }catch(e){}
+}
+
+function gv(id){return document.getElementById(id)?.value||'';}
+function sv(id,v){const e=document.getElementById(id);if(e)e.value=v||'';}
+function gr(n){const e=document.querySelector('input[name="'+n+'"]:checked');return e?e.value:'';}
+function gc(id){return document.getElementById(id)?.checked||false;}
+
+async function saveCase(addAnother=false){
+  const dept=gv('f_dept'),name=gv('f_name'),sdate=gv('f_sdate'),sp=gv('f_surgPerf');
+  if(!dept){alert('Sila pilih jabatan.');return;}
+  if(!name){alert('Sila isi nama pesakit.');return;}
+  if(!sdate){alert('Sila isi tarikh surgery.');return;}
+  if(!sp){alert('Sila pilih Surgery Performed.');return;}
+
+  // ── CONFIRMATION REMINDER ──
+  const today=new Date().toISOString().split('T')[0];
+  const dateDisplay=fmtD(sdate);
+  const isToday=sdate===today;
+  const confirmMsg = isToday
+    ? `✅ Sila semak sebelum simpan:\n\n👤 Pesakit: ${name}\n🏥 Jabatan: ${dept}\n📅 Tarikh Surgery: ${dateDisplay} (Hari Ini)\n🔪 Surgery: ${sp}\n\nAdakah maklumat ini betul?`
+    : `⚠️ PERHATIAN — Tarikh bukan hari ini!\n\n👤 Pesakit: ${name}\n🏥 Jabatan: ${dept}\n📅 Tarikh Surgery: ${dateDisplay}\n🔪 Surgery: ${sp}\n\nSila pastikan tarikh operation adalah BETUL sebelum simpan.\n\nTeruskan?`;
+
+  if(!confirm(confirmMsg)) return;
+
+  const immuno=[gc('cb_st')?'Steroids':'',gc('cb_ch')?'Chemotherapy':'',gc('cb_bi')?'Biologic':'',gc('cb_ra')?'Radiotherapy':'',gc('cb_ni')?'None':''].filter(Boolean).join(', ')||'';
+
+  const c={
+    id:'c_'+Date.now(),
+    hosp:gv('f_hosp'), dept, name, race:gv('f_race'), age:gv('f_age'),
+    gender:gv('f_gender'), mrn:gv('f_mrn'), contact:gv('f_contact'),
+    sdate, tstart:gv('f_tstart'), tend:gv('f_tend'), dur:gv('f_dur'),
+    sp, proc:gv('f_proc'), implant:gv('f_implant'),
+    stype:gv('f_stype'), surgeon:gv('f_surgeon'), surv:gr('surv'),
+    diag:gv('f_diag'), admit:gv('f_admit'), bmi:gv('f_bmi'),
+    preabx:gv('f_preabx'), dm:gv('f_dm'), bathing:gv('f_bathing'),
+    hair:gv('f_hair'), smoke:gv('f_smoke'), immuno,
+    skin1:gv('f_skin1'), skin2:gv('f_skin2'),
+    intraabx:gv('f_intraabx'), abxtime:gv('f_abxtime'),
+    redose:gv('f_redose'), redosereason:gv('f_redosereason'), redoseother:gv('f_redoseother'),
+    sutures:gv('f_sutures'), drain:gv('f_drain'),
+    sugar:gv('f_sugar'), abxdur:gv('f_abxdur'), readmit:gr('readmit'),
+    ssiday:gv('f_ssiday'), ssisite:gv('f_ssisite'),
+    ssiclass:gr('ssiclass'), ssidiag:gr('ssidiag'),
+    org:gv('f_org'), notes:gv('f_notes'),
+    saved_at:new Date().toISOString(),
+    synced: false  // track sync status
+  };
+
+  // Save local first
+  const cases=getCases(); cases.push(c); sd('cases',cases);
+
+  // UI feedback
+  const btn=document.getElementById('saveBtn');
+  btn.textContent='⏳ Menghantar...'; btn.disabled=true;
+  const al=document.getElementById('saveAlert');
+
+  if(getUrl()){
+    setSyncBar('⏳ Menghantar ke Google Sheets (cuba 1/3)...','syncing');
+    const res=await callSheets({action:'submitCase',payload:c});
+    if(res?.success){
+      markSynced(c.id, true);
+      setSyncBar('✅ Berjaya disimpan ke Sheets — '+res.sheetName,'ok');
+      al.textContent='✅ Data disimpan & berjaya dihantar ke sistem!';
+      al.className='alert alert-ok';
+    } else {
+      markSynced(c.id, false);
+      setSyncBar('⚠ Tersimpan tempatan — gagal hantar ke Sheets','err');
+      if(isCoordinator()){
+        al.innerHTML='✅ Disimpan dalam app. ⚠ Gagal sync ke Sheets.<br>'
+          +'<small style="color:#666">Pergi Tetapan → Cuba Sync Semula untuk hantar semula.</small>';
+      } else {
+        al.innerHTML='✅ Data berjaya disimpan dalam app.<br>'
+          +'<small style="color:#666">⚠ Penghantaran ke sistem pusat gagal. '
+          +'<strong>Sila maklumkan kepada Coordinator IPC.</strong></small>'
+          +'<div style="margin-top:6px;">'
+          +'<button class="btn btn-amber btn-sm" onclick="exportUnsyncedCSV()">📤 Export data untuk Coordinator</button>'
+          +'</div>';
+      }
+      al.className='alert alert-warn';
+    }
+  } else {
+    markSynced(c.id, false);
+    al.textContent='✅ Disimpan dalam app.';
+    al.className='alert alert-ok';
+  }
+  al.style.display='block';
+  setTimeout(()=>al.style.display='none',5000);
+  btn.textContent='💾 Simpan & Selesai'; btn.disabled=false;
+  const btn2=document.getElementById('saveAddBtn');
+  if(btn2) btn2.disabled=false;
+
+  if(addAnother){
+    // Keep date, dept, surgery type — clear patient info only
+    const keepDate=sdate;
+    const keepDept=dept;
+    const keepSP=sp;
+    updateBatchInfo(keepDate);
+    clearForm();
+    // Restore kept values
+    sv('f_sdate', keepDate);
+    sv('f_dept', keepDept);
+    sv('f_surgPerf', keepSP);
+    onSurgPerfChange();
+    checkDateWarning();
+    // Focus on name field
+    setTimeout(()=>document.getElementById('f_name')?.focus(), 100);
+    window.scrollTo(0, document.getElementById('f_name')?.offsetTop||0);
+  } else {
+    clearBatch();
+    clearForm();
+    window.scrollTo(0,0);
+  }
+}
+
+function clearForm(){
+  document.querySelectorAll('#page-entry input[type=text],#page-entry input[type=number],#page-entry input[type=date],#page-entry input[type=time],#page-entry input[type=tel],#page-entry textarea').forEach(e=>e.value='');
+  document.querySelectorAll('#page-entry select').forEach(e=>e.selectedIndex=0);
+  document.querySelectorAll('#page-entry input[type=radio],#page-entry input[type=checkbox]').forEach(e=>e.checked=false);
+  sv('f_hosp','Hospital Tengku Permaisuri Norashikin (HTPN)');
+  document.getElementById('procHints').innerHTML='';
+  // Default surveillance 90 days
+  const s90=document.querySelector('input[name="surv"][value="90 DAYS"]');
+  if(s90) s90.checked=true;
+}
+
+// ═══════════ PULL ALL CASES (Coordinator) ═══════════
+async function pullAllCases(){
+  const btn=document.getElementById('btnPullSheets');
+  if(btn){btn.textContent='⏳ Loading...';btn.disabled=true;}
+  setSyncBar('⏳ Mengambil semua data kes dari Google Sheets...','syncing');
+  try{
+    const url=getUrl(); if(!url) throw new Error('URL tidak dijumpai');
+    const r=await fetch(url+'?action=getAllCases',{
+      signal:(()=>{const c=new AbortController();setTimeout(()=>c.abort(),20000);return c.signal;})()
+    });
+    const d=await r.json();
+    if(d.success && Array.isArray(d.cases)){
+      // Merge: cases from Sheets override local, keep unsynced local cases too
+      const sheetsCases=d.cases;
+      const local=getCases();
+      const sheetsIds=new Set(sheetsCases.map(c=>c.id));
+      // Keep local cases that haven't been synced yet (not in Sheets)
+      const unsyncedLocal=local.filter(c=>!c.synced && !sheetsIds.has(c.id));
+      const merged=[...sheetsCases, ...unsyncedLocal];
+      sd('cases', merged);
+      setSyncBar('✅ '+sheetsCases.length+' kes dimuatkan dari Sheets'+(unsyncedLocal.length>0?' + '+unsyncedLocal.length+' kes tempatan belum sync':''),'ok');
+      renderDashboard();
+    } else {
+      throw new Error(d.error||'Tiada data dikembalikan dari Sheets');
+    }
+  } catch(e){
+    setSyncBar('❌ Gagal pull dari Sheets: '+e.message,'err');
+    alert('❌ Gagal mengambil data dari Sheets.\n\nKemungkinan:\n• Apps Script belum ada fungsi getAllCases\n• Semak deployment Apps Script\n\nError: '+e.message);
+  }
+  if(btn){btn.textContent='🔄 Refresh dari Sheets';btn.disabled=false;}
+}
+
+// ═══════════ DASHBOARD ═══════════
+function renderDashboard(){
+  const yr=document.getElementById('dashYear').value;
+  document.getElementById('dashYrLbl').textContent=yr;
+  document.getElementById('yrBadge').textContent=yr;
+
+  const coord=isCoordinator();
+  const userDept=getUserDept();
+
+  // Coordinator — show unsynced alert
+  const unsyncAlert=document.getElementById('unsyncedAlert');
+  if(unsyncAlert){
+    if(coord){
+      const {fail}=getSyncCounts();
+      unsyncAlert.style.display=fail>0?'block':'none';
+      const cnt=document.getElementById('unsyncedCount');
+      if(cnt) cnt.textContent=fail;
+    } else {
+      unsyncAlert.style.display='none';
+    }
+  }
+
+  // Coordinator — show filter dropdown, dept user — hide
+  const deptFilter=document.getElementById('dashDept');
+  if(deptFilter) deptFilter.style.display=coord?'':'none';
+
+  // Show/hide pull button — coordinator only
+  const pullBtn=document.getElementById('btnPullSheets');
+  if(pullBtn) pullBtn.style.display=coord?'':'none';
+
+  // Show bar charts for all users; dept case list only for dept users below charts
+  const coordCharts=document.getElementById('coordCharts');
+  const deptCaseList=document.getElementById('deptCaseList');
+  if(coordCharts) coordCharts.style.display='';
+  if(deptCaseList) deptCaseList.style.display=coord?'none':'block';
+
+  // Data — dept user only sees own dept
+  let cases=getCasesForUser().filter(c=>c.sdate&&c.sdate.startsWith(yr));
+  if(coord && deptFilter && deptFilter.value){
+    cases=cases.filter(c=>c.dept===deptFilter.value);
+  }
+
+  const total=cases.length;
+  const ssiCases=cases.filter(c=>c.ssiclass);
+  const rate=total>0?((ssiCases.length/total)*100).toFixed(2):'0.00';
+
+  document.getElementById('ds-total').textContent=total;
+  document.getElementById('ds-ssi').textContent=ssiCases.length;
+  document.getElementById('ds-rate').textContent=rate+'%';
+  // 4th stat — Jabatan Dipantau (coordinator only)
+  const stat4=document.querySelector('#ds-depts')?.closest('.stat');
+  const statsGrid=document.getElementById('statsGrid');
+  if(coord){
+    document.getElementById('ds-depts').textContent=getDepts().length;
+    document.getElementById('ds-depts-label').textContent='Jabatan Dipantau';
+    if(stat4) stat4.style.display='';
+    if(statsGrid) statsGrid.style.gridTemplateColumns='repeat(4,1fr)';
+  } else {
+    // Dept user stats: Dipantau | SSI | Rate
+    document.getElementById('ds-total').textContent=total;
+    const dsLbl=document.querySelector('#ds-total+.stat-l');
+    if(document.getElementById('ds-total')?.nextElementSibling)
+      document.getElementById('ds-total').closest('.stat').querySelector('.stat-l').textContent='Kes Dipantau';
+    if(stat4) stat4.style.display='none';
+    if(statsGrid) statsGrid.style.gridTemplateColumns='repeat(3,1fr)';
+  }
+
+  // ── Dept Case List (dept users only) ──────────────────────────
+  if(!coord){
+    const today0=new Date(); today0.setHours(0,0,0,0);
+    const titleEl=document.getElementById('deptCaseTitle');
+    const subEl=document.getElementById('deptCaseSubtitle');
+    const active=cases.filter(c=>{
+      if(c.ssiclass) return false;
+      const sd=c.surv==='30 DAYS'?30:c.surv==='365 DAYS'?365:90;
+      const sDate=new Date(c.sdate); sDate.setHours(0,0,0,0);
+      return Math.floor((today0-sDate)/86400000)<=sd;
+    }).length;
+    if(titleEl) titleEl.textContent='Kes Dalam Pantauan — '+userDept+' ('+yr+')';
+    if(subEl) subEl.textContent=total+' kes dimasuk | '+ssiCases.length+' SSI | '+active+' masih dalam surveillance';
+
+    const statusFilter=document.getElementById('deptMonFilterStatus')?.value||'';
+    let deptCases=[...cases].sort((a,b)=>new Date(b.sdate)-new Date(a.sdate));
+
+    if(statusFilter==='ssi') deptCases=deptCases.filter(c=>c.ssiclass);
+    else if(statusFilter==='active') deptCases=deptCases.filter(c=>{
+      if(c.ssiclass) return false;
+      const sd=c.surv==='30 DAYS'?30:c.surv==='365 DAYS'?365:90;
+      const sDate=new Date(c.sdate); sDate.setHours(0,0,0,0);
+      return Math.floor((today0-sDate)/86400000)<=sd;
+    });
+    else if(statusFilter==='done') deptCases=deptCases.filter(c=>{
+      if(c.ssiclass) return false;
+      const sd=c.surv==='30 DAYS'?30:c.surv==='365 DAYS'?365:90;
+      const sDate=new Date(c.sdate); sDate.setHours(0,0,0,0);
+      return Math.floor((today0-sDate)/86400000)>sd;
+    });
+
+    const dctbl=document.getElementById('deptCaseTbl');
+    if(!deptCases.length){
+      dctbl.innerHTML='<tr><td colspan="9"><div class="empty"><div class="ei">📋</div><p>Tiada kes untuk '+yr+'</p></div></td></tr>';
+    } else {
+      dctbl.innerHTML=deptCases.map((c,i)=>{
+        const survDays=c.surv==='30 DAYS'?30:c.surv==='365 DAYS'?365:90;
+        const sDate=new Date(c.sdate); sDate.setHours(0,0,0,0);
+        const elapsed=Math.floor((today0-sDate)/86400000);
+        const left=survDays-elapsed;
+        const expired=left<0;
+
+        let badge='';
+        if(c.ssiclass){
+          const cls=c.ssiclass==='Superficial Incisional'?'tag-amber':c.ssiclass==='Deep Incisional'?'tag-red':'tag-purple';
+          badge='<span class="tag '+cls+'">🔴 '+esc(c.ssiclass)+'</span>';
+        } else if(expired){
+          badge='<span class="tag tag-green">✅ Selesai</span>';
+        } else if(left<=7){
+          badge='<span class="tag tag-red">⏳ '+left+' hari</span>';
+        } else if(left<=14){
+          badge='<span class="tag tag-amber">⏳ '+left+' hari</span>';
+        } else {
+          badge='<span class="tag tag-teal">⏳ '+left+' hari</span>';
+        }
+
+        const daysCell=expired
+          ?'<span style="color:var(--muted);font-size:.70rem;">—</span>'
+          :'<span style="font-family:monospace;font-weight:600;color:'+(left<=7?'var(--red)':left<=14?'var(--amber)':'var(--teal)')+';">'+left+'d</span>';
+
+        return'<tr>'
+          +'<td style="color:var(--muted);font-size:.68rem;">'+(i+1)+'</td>'
+          +'<td style="font-weight:600;font-size:.76rem;">'+esc(c.sp||'-')+'</td>'
+          +'<td style="font-family:monospace;font-size:.68rem;">'+esc(c.mrn||'-')+'</td>'
+          +'<td>'+fmtD(c.sdate)+'</td>'
+          +'<td style="font-size:.70rem;color:var(--muted);">'+esc(c.proc||'—')+'</td>'
+          +'<td><span class="tag tag-teal" style="font-size:.60rem;">'+esc(c.surv||'90 DAYS')+'</span></td>'
+          +'<td>'+daysCell+'</td>'
+          +'<td>'+badge+'</td>'
+          +'<td style="white-space:nowrap;">'
+          +'<button class="btn btn-outline btn-sm" onclick="viewCase(\''+c.id+'\')">👁</button> '
+          +(c.ssiclass?'':'<button class="btn btn-sm" style="background:#8e44ad;color:#fff;padding:3px 8px;font-size:.68rem;" onclick="showPage(\'ssi\',document.querySelector(\'[onclick*=ssi]\'));setTimeout(()=>openSsiModal(\''+c.id+'\'),300)">+ SSI</button>')
+          +'</td>'
+          +'</tr>';
+      }).join('');
+    }
+  }
+
+  // Visible depts — coordinator sees all, dept user sees only own
+  const allDepts=getDepts();
+  const visDepts=coord?allDepts:[userDept];
+
+  // Left chart — coordinator: SSI Rate by Jabatan | dept user: Total Surgery by Surgery type
+  const db=document.getElementById('deptBars');
+  const leftTitle=document.getElementById('leftChartTitle');
+  if(coord){
+    // Coordinator — SSI Rate mengikut Jabatan
+    if(leftTitle) leftTitle.textContent='SSI Rate Mengikut Jabatan';
+    const dData=visDepts.map(d=>{
+      const dc=cases.filter(c=>c.dept===d);
+      const ds=dc.filter(c=>c.ssiclass);
+      const dr=dc.length>0?parseFloat(((ds.length/dc.length)*100).toFixed(1)):0;
+      return{d,total:dc.length,ssi:ds.length,rate:dr};
+    }).filter(x=>x.total>0);
+    if(!dData.length){db.innerHTML='<div class="empty"><div class="ei">📊</div><p>Tiada data</p></div>';}
+    else{
+      const mx=Math.max(...dData.map(x=>x.rate),1);
+      db.innerHTML=dData.map(x=>{
+        const col=x.rate>5?'#c0392b':x.rate>2?'#e67e22':'#27ae60';
+        const w=Math.max((x.rate/mx)*100,x.rate>0?4:0);
+        const lbl=x.d.length>14?x.d.substring(0,12)+'\u2026':x.d;
+        return'<div class="brow"><div class="blbl" title="'+esc(x.d)+'">'+esc(lbl)+'</div>'
+          +'<div class="btrack"><div class="bfill" style="width:'+w+'%;background:'+col+';">'
+          +(x.rate>0?'<span class="bval">'+x.rate+'%</span>':'')
+          +'</div></div><span style="font-size:.68rem;color:var(--muted);min-width:38px;">'+x.ssi+'/'+x.total+'</span></div>';
+      }).join('');
+    }
+  } else {
+    // Dept user — Total Surgery dipantau mengikut jenis surgery
+    if(leftTitle) leftTitle.textContent='Total Surgery Dipantau Mengikut Jenis Surgery';
+    const surgTypes2=getSurgTypes();
+    const spCounts=surgTypes2.map(t=>({sp:t.sp,n:cases.filter(c=>c.sp===t.sp).length}))
+      .filter(x=>x.n>0).sort((a,b)=>b.n-a.n);
+    if(!spCounts.length){db.innerHTML='<div class="empty"><div class="ei">📊</div><p>Tiada data</p></div>';}
+    else{
+      const mx2=Math.max(...spCounts.map(x=>x.n),1);
+      db.innerHTML=spCounts.map(x=>{
+        const w=Math.max((x.n/mx2)*100,5);
+        const lbl=x.sp.length>14?x.sp.substring(0,12)+'\u2026':x.sp;
+        return'<div class="brow"><div class="blbl" title="'+esc(x.sp)+'">'+esc(lbl)+'</div>'
+          +'<div class="btrack"><div class="bfill" style="width:'+w+'%;background:var(--teal);">'
+          +'<span class="bval">'+x.n+'</span></div></div></div>';
+      }).join('');
+    }
+  }
+
+  // Surgery bars
+  const sb=document.getElementById('surgBars');
+  const surgTypes=getSurgTypes();
+  const sData=surgTypes.map(t=>({sp:t.sp,n:ssiCases.filter(c=>c.sp===t.sp).length}))
+    .filter(x=>x.n>0).sort((a,b)=>b.n-a.n).slice(0,8);
+  if(!sData.length){sb.innerHTML='<div class="empty"><div class="ei">🔪</div><p>Tiada SSI</p></div>';}
+  else{
+    const mx=Math.max(...sData.map(x=>x.n),1);
+    sb.innerHTML=sData.map(x=>{
+      const w=Math.max((x.n/mx)*100,5);
+      const lbl=x.sp.length>14?x.sp.substring(0,12)+'…':x.sp;
+      return'<div class="brow"><div class="blbl" title="'+esc(x.sp)+'">'+esc(lbl)+'</div>'
+        +'<div class="btrack"><div class="bfill" style="width:'+w+'%;background:#8e44ad;">'
+        +'<span class="bval">'+x.n+'</span></div></div></div>';
+    }).join('');
+  }
+
+  // Dept summary table — use denominator for rate
+  const dtbl=document.getElementById('deptTbl');
+  const denomHint=document.getElementById('denomHint');
+  if(denomHint) denomHint.style.display=coord?'inline':'none';
+
+  // Recalculate overall rate using sum of denominators
+  let totalDenom=0;
+  visDepts.forEach(d=>{
+    const dv=getDenom(d,yr);
+    totalDenom+=dv>0?dv:cases.filter(c=>c.dept===d).length;
+  });
+  const overallRate=totalDenom>0?((ssiCases.length/totalDenom)*100).toFixed(2):'0.00';
+  document.getElementById('ds-total').textContent=totalDenom||total;
+  document.getElementById('ds-rate').textContent=overallRate+'%';
+
+  const trows=visDepts.map(d=>{
+    const dc=cases.filter(c=>c.dept===d);
+    const ds=dc.filter(c=>c.ssiclass);
+    const customDenom=getDenom(d,yr);
+    const denom=customDenom>0?customDenom:dc.length;
+    if(dc.length===0&&!customDenom) return'';
+    const rr=denom>0?((ds.length/denom)*100).toFixed(2):'0.00';
+    const rtag=parseFloat(rr)>5?'<span class="tag tag-red">'+rr+'%</span>':
+      parseFloat(rr)>2?'<span class="tag tag-amber">'+rr+'%</span>':
+      '<span class="tag tag-green">'+rr+'%</span>';
+
+    // Denominator cell — editable for coordinator
+    const denomCell=coord
+      ?'<div class="denom-cell">'
+        +'<input type="number" class="denom-input" id="di_'+esc(d)+'" value="'+denom+'" min="0" '
+        +'onchange="saveDenom(\''+esc(d)+'\',\''+yr+'\',this.value)" '
+        +'title="Kemaskini jumlah total surgery">'
+        +(customDenom>0?'<span class="denom-badge">✓ custom</span>':'<span class="denom-badge">app</span>')
+        +'</div>'
+      :'<strong>'+denom+'</strong>';
+
+    return'<tr>'
+      +'<td><strong>'+esc(d)+'</strong></td>'
+      +'<td>'+denomCell+'</td>'
+      +'<td style="color:var(--muted);">'+dc.length+'</td>'
+      +'<td>'+ds.length+'</td>'
+      +'<td>'+rtag+'</td>'
+      +'<td>'+ds.filter(c=>c.ssiclass==='Superficial Incisional').length+'</td>'
+      +'<td>'+ds.filter(c=>c.ssiclass==='Deep Incisional').length+'</td>'
+      +'<td>'+ds.filter(c=>c.ssiclass==='Organ/Space').length+'</td>'
+      +'</tr>';
+  }).join('');
+  dtbl.innerHTML=trows||'<tr><td colspan="8"><div class="empty"><div class="ei">🗂</div><p>Tiada data</p></div></td></tr>';
+
+  // ── Recent SSI (compact — top 5 only) ──
+  const recent=[...ssiCases].sort((a,b)=>new Date(b.sdate)-new Date(a.sdate)).slice(0,5);
+  const rtbl=document.getElementById('recentTbl');
+  if(!recent.length){
+    rtbl.innerHTML='<tr><td colspan="8"><div class="empty"><div class="ei">✅</div><p>Tiada kes SSI</p></div></td></tr>';
+  } else {
+    let rows='';
+    for(const c of recent){
+      const tag=c.ssiclass==='Superficial Incisional'?'tag-amber':c.ssiclass==='Deep Incisional'?'tag-red':'tag-purple';
+      rows+='<tr>'
+        +'<td>'+esc(c.name||'-')+'</td>'
+        +'<td style="font-family:monospace;font-size:.70rem;">'+esc(c.mrn||'-')+'</td>'
+        +'<td>'+esc(c.dept||'-')+'</td>'
+        +'<td>'+fmtD(c.sdate)+'</td>'
+        +'<td style="font-size:.72rem;">'+esc(c.sp||'-')+'</td>'
+        +'<td><span class="tag '+tag+'">'+esc(c.ssiclass||'-')+'</span></td>'
+        +'<td style="font-size:.70rem;">'+esc(c.org||'-')+'</td>'
+        +'<td><button class="btn btn-outline btn-sm" onclick="viewCase(\''+c.id+'\')">👁</button> '
+        +'<button class="btn btn-amber btn-sm" onclick="printCase(\''+c.id+'\')">🖨</button></td>'
+        +'</tr>';
+    }
+    rtbl.innerHTML=rows;
+  }
+
+  // ── Surgery Type Breakdown ──
+  document.getElementById('surgBrkYrLbl').textContent=yr;
+  const surgBrkTbl=document.getElementById('surgBrkTbl');
+  const surgMap={};
+  cases.forEach(c=>{
+    const key=(c.sp||'Lain-lain')+'||'+(c.dept||'-');
+    if(!surgMap[key]) surgMap[key]={sp:c.sp||'Lain-lain',dept:c.dept||'-',total:0,ssi:0,sup:0,deep:0,org:0};
+    surgMap[key].total++;
+    if(c.ssiclass){
+      surgMap[key].ssi++;
+      if(c.ssiclass==='Superficial Incisional') surgMap[key].sup++;
+      else if(c.ssiclass==='Deep Incisional')   surgMap[key].deep++;
+      else if(c.ssiclass==='Organ/Space')        surgMap[key].org++;
+    }
+  });
+  const surgRows=Object.values(surgMap).sort((a,b)=>b.total-a.total);
+  if(!surgRows.length){
+    surgBrkTbl.innerHTML='<tr><td colspan="8"><div class="empty"><div class="ei">🔪</div><p>Tiada data</p></div></td></tr>';
+  } else {
+    surgBrkTbl.innerHTML=surgRows.map(r=>{
+      const rate=r.total>0?((r.ssi/r.total)*100).toFixed(1):'0.0';
+      const rtag=parseFloat(rate)>5?'<span class="tag tag-red">'+rate+'%</span>':
+        parseFloat(rate)>2?'<span class="tag tag-amber">'+rate+'%</span>':
+        '<span class="tag tag-green">'+rate+'%</span>';
+      return'<tr>'
+        +'<td style="font-weight:500;font-size:.76rem;">'+esc(r.sp)+'</td>'
+        +'<td>'+esc(r.dept)+'</td>'
+        +'<td><strong style="color:var(--teal);">'+r.total+'</strong></td>'
+        +'<td><strong style="color:var(--red);">'+r.ssi+'</strong></td>'
+        +'<td>'+rtag+'</td>'
+        +'<td>'+r.sup+'</td>'
+        +'<td>'+r.deep+'</td>'
+        +'<td>'+r.org+'</td>'
+        +'</tr>';
+    }).join('');
+  }
+
+  // ── ALL Monitored Cases ──
+  const monSurgSel=document.getElementById('monFilterSurgery');
+  const monStatSel=document.getElementById('monFilterStatus');
+  // Populate surgery filter
+  if(monSurgSel){
+    const curSurg=monSurgSel.value;
+    const spList=[...new Set(cases.map(c=>c.sp||'').filter(Boolean))].sort();
+    monSurgSel.innerHTML='<option value="">Semua Jenis Surgery</option>'
+      +spList.map(s=>'<option value="'+esc(s)+'"'+(s===curSurg?' selected':'')+'>'+esc(s)+'</option>').join('');
+  }
+  const filterSurg=monSurgSel?.value||'';
+  const filterStat=monStatSel?.value||'';
+  const today2=new Date(); today2.setHours(0,0,0,0);
+
+  let monCases=[...cases].sort((a,b)=>new Date(b.sdate)-new Date(a.sdate));
+
+  // Apply filters
+  if(filterSurg) monCases=monCases.filter(c=>c.sp===filterSurg);
+  if(filterStat==='ssi')    monCases=monCases.filter(c=>c.ssiclass);
+  else if(filterStat==='active') monCases=monCases.filter(c=>{
+    if(c.ssiclass) return false;
+    const survDays=c.surv==='30 DAYS'?30:c.surv==='365 DAYS'?365:90;
+    const surgDate=new Date(c.sdate); surgDate.setHours(0,0,0,0);
+    const daysElapsed=Math.floor((today2-surgDate)/86400000);
+    return daysElapsed<=survDays;
+  });
+  else if(filterStat==='done') monCases=monCases.filter(c=>{
+    if(c.ssiclass) return false;
+    const survDays=c.surv==='30 DAYS'?30:c.surv==='365 DAYS'?365:90;
+    const surgDate=new Date(c.sdate); surgDate.setHours(0,0,0,0);
+    const daysElapsed=Math.floor((today2-surgDate)/86400000);
+    return daysElapsed>survDays;
+  });
+
+  const monCnt=document.getElementById('monitoredCount');
+  if(monCnt) monCnt.textContent=monCases.length;
+
+  const monTbl=document.getElementById('monitoredTbl');
+  if(!monCases.length){
+    monTbl.innerHTML='<tr><td colspan="10"><div class="empty"><div class="ei">📋</div><p>Tiada kes dalam senarai ini</p></div></td></tr>';
+  } else {
+    monTbl.innerHTML=monCases.map((c,i)=>{
+      const survDays=c.surv==='30 DAYS'?30:c.surv==='365 DAYS'?365:90;
+      const surgDate=new Date(c.sdate); surgDate.setHours(0,0,0,0);
+      const daysElapsed=Math.floor((today2-surgDate)/86400000);
+      const daysLeft=survDays-daysElapsed;
+      const expired=daysLeft<0;
+
+      // Status badge
+      let statusBadge='';
+      if(c.ssiclass){
+        const cls=c.ssiclass==='Superficial Incisional'?'tag-amber':c.ssiclass==='Deep Incisional'?'tag-red':'tag-purple';
+        statusBadge='<span class="tag '+cls+'">🔴 '+esc(c.ssiclass)+'</span>';
+      } else if(expired){
+        statusBadge='<span class="tag tag-green">✅ Selesai — Tiada SSI</span>';
+      } else if(daysLeft<=7){
+        statusBadge='<span class="tag tag-red">⏳ '+daysLeft+' hari lagi</span>';
+      } else if(daysLeft<=14){
+        statusBadge='<span class="tag tag-amber">⏳ '+daysLeft+' hari lagi</span>';
+      } else {
+        statusBadge='<span class="tag tag-teal">⏳ '+daysLeft+' hari lagi</span>';
+      }
+
+      // Days remaining cell
+      const daysCell=expired?'<span style="color:var(--muted);font-size:.70rem;">Tamat</span>':
+        '<span style="font-family:monospace;font-size:.72rem;color:'+(daysLeft<=7?'var(--red)':daysLeft<=14?'var(--amber)':'var(--teal)')+';">'+daysLeft+'d</span>';
+
+      return'<tr>'
+        +'<td style="color:var(--muted);font-size:.68rem;">'+(i+1)+'</td>'
+        +'<td><strong style="font-size:.78rem;">'+esc(c.name||'-')+'</strong></td>'
+        +'<td style="font-family:monospace;font-size:.68rem;">'+esc(c.mrn||'-')+'</td>'
+        +'<td style="font-size:.72rem;">'+esc(c.dept||'-')+'</td>'
+        +'<td style="font-size:.72rem;">'+fmtD(c.sdate)+'</td>'
+        +'<td style="font-size:.72rem;font-weight:500;">'+esc(c.sp||'-')+'</td>'
+        +'<td><span class="tag tag-teal" style="font-size:.62rem;">'+esc(c.surv||'90 DAYS')+'</span></td>'
+        +'<td>'+daysCell+'</td>'
+        +'<td>'+statusBadge+'</td>'
+        +'<td style="white-space:nowrap;">'
+        +'<button class="btn btn-outline btn-sm" onclick="viewCase(\''+c.id+'\')">👁</button> '
+        +'<button class="btn btn-amber btn-sm" onclick="printCase(\''+c.id+'\')">🖨</button>'
+        +'</td>'
+        +'</tr>';
+    }).join('');
+  }
+
+  // Render risk factors
+  renderRisks(cases);
+}
+// ═══════════ RECORDS ═══════════
+function renderRecords(){
+  let cases=getCasesForUser();
+  const dept=document.getElementById('fDept')?.value||'';
+  const ssi=document.getElementById('fSSI')?.value||'';
+  const search=(document.getElementById('fSearch')?.value||'').toLowerCase();
+  if(dept) cases=cases.filter(c=>c.dept===dept);
+  if(ssi==='ssi') cases=cases.filter(c=>c.ssiclass);
+  if(ssi==='none') cases=cases.filter(c=>!c.ssiclass);
+  if(search) cases=cases.filter(c=>(c.name||'').toLowerCase().includes(search)||(c.mrn||'').toLowerCase().includes(search));
+  cases.sort((a,b)=>new Date(b.sdate||0)-new Date(a.sdate||0));
+  const tb=document.getElementById('recTbl');
+  if(!cases.length){tb.innerHTML='<tr><td colspan="10"><div class="empty"><div class="ei">📭</div><p>Tiada rekod</p></div></td></tr>';return;}
+  tb.innerHTML=cases.map((c,i)=>{
+    const hasSSI=!!c.ssiclass;
+    const stag=hasSSI?(c.ssiclass==='Superficial Incisional'?'tag-amber':c.ssiclass==='Deep Incisional'?'tag-red':'tag-purple'):'tag-green';
+    const slbl=hasSSI?c.ssiclass:'Tiada SSI';
+    return'<tr>'
+      +'<td style="color:var(--muted);font-size:.70rem;">'+(i+1)+'</td>'
+      +'<td><strong>'+esc(c.name||'-')+'</strong></td>'
+      +'<td style="font-family:monospace;font-size:.70rem;">'+esc(c.mrn||'-')+'</td>'
+      +'<td>'+esc(c.dept||'-')+'</td>'
+      +'<td>'+fmtD(c.sdate)+'</td>'
+      +'<td style="font-size:.72rem;">'+esc(c.sp||'-')+'</td>'
+      +'<td style="font-size:.70rem;">'+esc((c.proc||'-').substring(0,30))+'</td>'
+      +'<td><span class="tag '+stag+'">'+esc(slbl)+'</span></td>'
+      +'<td style="font-size:.70rem;">'+esc(c.org||'-')+'</td>'
+      +'<td style="white-space:nowrap;">'
+      +'<button class="btn btn-outline btn-sm" onclick="viewCase(\''+c.id+'\')">👁</button> '
+      +'<button class="btn btn-amber btn-sm" onclick="printCase(\''+c.id+'\')">🖨</button> '
+      +'<button class="btn btn-danger btn-sm" onclick="delCase(\''+c.id+'\')">🗑</button>'
+      +'</td></tr>';
+  }).join('');
+}
+
+function delCase(id){if(!confirm('Padam kes ini?'))return;sd('cases',getCases().filter(c=>c.id!==id));renderRecords();}
+
+// ═══════════ VIEW ═══════════
+function viewCase(id){
+  const c=getCases().find(x=>x.id===id); if(!c) return;
+  const r=(l,v)=>'<div style="padding:6px;background:var(--bg);border-radius:5px;">'
+    +'<div style="font-size:.62rem;color:var(--muted);font-weight:600;">'+l+'</div>'
+    +'<div style="font-weight:500;margin-top:1px;font-size:.78rem;">'+esc(v||'-')+'</div></div>';
+  document.getElementById('viewBody').innerHTML=
+    '<div style="display:grid;grid-template-columns:1fr 1fr;gap:7px;">'
+    +r('Nama',c.name)+r('No. IC / Pasport',c.mrn)+r('Jabatan',c.dept)+r('Tarikh Surgery',fmtD(c.sdate))
+    +r('Surgery Performed',c.sp)+r('Prosedur',c.proc)+r('Jenis Surgery',c.stype)
+    +r('Klasifikasi SSI',c.ssiclass||'Tiada SSI')+r('Organisma',c.org)
+    +r('BMI',c.bmi)+r('DM',c.dm)+r('Drain',c.drain)+'</div>'
+    +(c.notes?'<div style="margin-top:8px;padding:8px;background:var(--pre);border-radius:6px;font-size:.76rem;"><strong>Catatan:</strong> '+esc(c.notes)+'</div>':'');
+  document.getElementById('vPrintBtn').onclick=()=>{closeView();printCase(id);};
+  document.getElementById('viewOv').classList.add('open');
+}
+function closeView(){document.getElementById('viewOv').classList.remove('open');}
+
+// ═══════════ PRINT ═══════════
+function printCase(id){
+  const c=getCases().find(x=>x.id===id); if(!c) return;
+  const pr=(l,v)=>'<div class="prow"><div class="plbl">'+l+'</div><div class="pval">'+esc(v||'-')+'</div></div>';
+  document.getElementById('pBody').innerHTML=
+    '<div class="pf-title">SSI Data Collection Form</div>'
+    +'<div class="pf-sub">'+esc(c.hosp||'HTPN')+'</div>'
+    +'<div style="display:grid;grid-template-columns:1fr 1fr;border:1px solid #ccc;font-size:.76rem;margin-bottom:4px;">'
+    +'<div style="padding:4px 8px;border-right:1px solid #ccc;"><b>Hospital:</b> '+esc(c.hosp||'-')+'</div>'
+    +'<div style="padding:4px 8px;"><b>Jabatan:</b> '+esc(c.dept||'-')+'</div></div>'
+    +'<div class="psec" style="background:#2c3e50;color:#fff;">PATIENT DETAIL</div>'
+    +pr('Nama',c.name)+pr('Bangsa',c.race)
+    +'<div class="prow"><div class="plbl">Umur / Jantina</div><div class="pval">'+(c.age||'-')+' / '+(c.gender||'-')+'</div></div>'
+    +pr('No. IC / Pasport',c.mrn)+pr('No. Hubungi',c.contact)
+    +'<div class="psec" style="background:#2c3e50;color:#fff;">SURGERY INFO</div>'
+    +pr('Tarikh Surgery',fmtD(c.sdate))
+    +'<div class="prow"><div class="plbl">Masa Surgery</div><div class="pval">'+(c.tstart||'-')+' — '+(c.tend||'-')+(c.dur?' ('+c.dur+' min)':'')+'</div></div>'
+    +pr('Surgery Performed',c.sp)+pr('Name of Procedure',c.proc)
+    +pr('Implant Used',c.implant)+pr('Type of Surgery',c.stype)+pr('Primary Surgeon',c.surgeon)
+    +pr('Surveillance',c.surv)
+    +'<div class="psec" style="background:#14a085;color:#fff;">PRE-OPERATIVE</div>'
+    +pr('Diagnosis',c.diag)+pr('Tarikh Masuk',fmtD(c.admit))+pr('BMI',c.bmi)
+    +pr('Antibiotic Prophylaxis',c.preabx)+pr('DM',c.dm)+pr('Bathing',c.bathing)
+    +pr('Hair Removal',c.hair)+pr('Smoking/Vaping',c.smoke)+pr('Immunosuppressant',c.immuno)
+    +'<div class="psec" style="background:#e67e22;color:#fff;">INTRA-OPERATIVE</div>'
+    +pr('Skin Prep (1st Layer)',c.skin1)+pr('Skin Prep (2nd Layer)',c.skin2)
+    +'<div class="prow"><div class="plbl">Antibiotic Prophylaxis</div><div class="pval">'+(c.intraabx||'-')+(c.abxtime?' ('+c.abxtime+')':'')+'</div></div>'
+    +pr('Redosing',c.redose)+pr('Redosing Reason',c.redosereason)+(c.redoseother?pr('If Others',c.redoseother):'')
+    +pr('Antimicrobial Sutures',c.sutures)+pr('Drain',c.drain)
+    +'<div class="psec" style="background:#c0392b;color:#fff;">POST-OPERATIVE</div>'
+    +pr('Uncontrolled Sugar',c.sugar)+pr('Duration Antibiotics',c.abxdur)+pr('Readmitted',c.readmit)
+    +(c.ssiclass?'<div class="psec" style="background:#8e44ad;color:#fff;">SSI</div>'
+      +pr('Day of SSI',c.ssiday?'Day '+c.ssiday:'-')+pr('Site of SSI',c.ssisite)
+      +pr('Klasifikasi SSI',c.ssiclass)+pr('Diagnosis',c.ssidiag)+pr('Organisma',c.org):'')
+    +(c.notes?pr('Catatan',c.notes):'')
+    +'<div style="margin-top:10px;padding:5px 8px;background:#f9f9f9;border:1px solid #ccc;font-size:.66rem;color:#999;">'
+    +'ID: '+c.id+' | Saved: '+(c.saved_at?new Date(c.saved_at).toLocaleString('ms-MY'):'-')+'</div>';
+  document.getElementById('printOv').classList.add('open');
+}
+function closePrint(){document.getElementById('printOv').classList.remove('open');}
+
+// ═══════════ SYNC TRACKING ═══════════
+function markSynced(id, status){
+  const cases=getCases();
+  const idx=cases.findIndex(c=>c.id===id);
+  if(idx>=0){ cases[idx].synced=status; sd('cases',cases); }
+}
+
+function getSyncCounts(){
+  const cases=getCases();
+  const ok=cases.filter(c=>c.synced===true).length;
+  const fail=cases.filter(c=>!c.synced).length; // false or undefined = not synced
+  return{total:cases.length, ok, fail};
+}
+
+async function retrySyncAll(){
+  const btn=document.getElementById('retryBtn');
+  if(btn){ btn.textContent='⏳ Syncing...'; btn.disabled=true; }
+  const cases=getCases();
+  const pending=cases.filter(c=>!c.synced);
+  if(!pending.length){
+    alert('Tiada kes yang perlu di-sync semula.');
+    if(btn){btn.textContent='🔄 Cuba Sync Semula Semua';btn.disabled=false;}
+    return;
+  }
+
+  let ok=0, fail=0;
+  for(const c of pending){
+    try{
+      setSyncBar('⏳ Syncing '+(ok+fail+1)+'/'+pending.length+'...','syncing');
+      const res=await callSheets({action:'submitCase',payload:c}, 2); // 2 retries each
+      if(res?.success){ markSynced(c.id,true); ok++; }
+      else { fail++; }
+    }catch(e){ fail++; }
+  }
+
+  setSyncBar(
+    ok>0 ? '✅ '+ok+' kes berjaya sync'+(fail>0?', '+fail+' masih gagal':'') : '❌ Semua gagal — semak Apps Script',
+    ok>0&&fail===0?'ok':'err'
+  );
+  if(btn){ btn.textContent='🔄 Cuba Sync Semula Semua'; btn.disabled=false; }
+
+  // Refresh both settings + dashboard alert
+  renderSettings();
+  const {fail:remaining}=getSyncCounts();
+  const alertEl=document.getElementById('unsyncedAlert');
+  if(alertEl) alertEl.style.display=remaining>0?'block':'none';
+  const cntEl=document.getElementById('unsyncedCount');
+  if(cntEl) cntEl.textContent=remaining;
+
+  const msg=ok>0
+    ? '✅ '+ok+' kes berjaya dihantar ke Sheets!'+(fail>0?'\n❌ '+fail+' kes masih gagal.\n\nSemak Apps Script deployment.':'')
+    : '❌ Semua kes masih gagal.\n\nKemungkinan Apps Script perlu di-deploy semula.\nPergi Tetapan → expand "Tukar URL" untuk update.';
+  alert(msg);
+}
+
+async function runFullDiagnosis(){
+  const url=getUrl();
+  const steps=document.getElementById('diagSteps');
+  const r1=document.getElementById('diagStep1');
+  const r2=document.getElementById('diagStep2');
+  const r3=document.getElementById('diagStep3');
+  const rr=document.getElementById('diagResult');
+  if(!steps) return;
+  steps.style.display='block';
+  rr.style.display='none';
+
+  const pass='background:#eafaf1;color:#27ae60;';
+  const fail='background:#fdecea;color:#c0392b;';
+  const wait='background:#fef5e7;color:#e67e22;';
+
+  // Step 1: GET ping
+  r1.textContent='⏳ Step 1: Test GET ping...'; r1.style.cssText=wait;
+  try{
+    const res=await fetch(url+'?action=ping',{signal:(()=>{const c=new AbortController();setTimeout(()=>c.abort(),8000);return c.signal;})()});
+    const d=await res.json();
+    if(d.success){ r1.textContent='✅ Step 1: GET ping OK — Apps Script aktif'; r1.style.cssText=pass; }
+    else { r1.textContent='❌ Step 1: GET ping error — '+d.error; r1.style.cssText=fail; }
+  }catch(e){
+    r1.textContent='❌ Step 1: GET gagal — '+e.message; r1.style.cssText=fail;
+    r2.textContent='⏩ Step 2: Dilangkau (Step 1 gagal)'; r2.style.cssText='color:var(--muted);';
+    r3.textContent='⏩ Step 3: Dilangkau'; r3.style.cssText='color:var(--muted);';
+    return;
+  }
+
+  // Step 2: POST test data
+  r2.textContent='⏳ Step 2: Test POST dengan data ujian...'; r2.style.cssText=wait;
+  const testPayload={
+    action:'submitCase',
+    payload:{
+      id:'DIAG_TEST_'+Date.now(),
+      name:'__DIAGNOSTIC_TEST__',
+      dept:'TEST', sdate:new Date().toISOString().split('T')[0],
+      sp:'TEST', _isTest:true
+    }
+  };
+  let rawResp='';
+  try{
+    const res=await fetch(url,{
+      method:'POST', mode:'cors',
+      headers:{'Content-Type':'text/plain;charset=utf-8'},
+      body:JSON.stringify(testPayload),
+      signal:(()=>{const c=new AbortController();setTimeout(()=>c.abort(),12000);return c.signal;})()
+    });
+    rawResp='HTTP '+res.status+' '+res.statusText+'\n';
+    const txt=await res.text();
+    rawResp+=txt;
+    r2.textContent='✅ Step 2: POST request sampai ke Apps Script (HTTP '+res.status+')'; r2.style.cssText=pass;
+
+    // Step 3: parse response
+    r3.textContent='⏳ Step 3: Semak response...'; r3.style.cssText=wait;
+    try{
+      const d=JSON.parse(txt);
+      if(d.success){
+        r3.textContent='✅ Step 3: Apps Script proses data OK — sync SEPATUTNYA berfungsi'; r3.style.cssText=pass;
+        rr.innerHTML='<strong style="color:green">✅ Semua OK. Cuba klik "Cuba Sync Semula" — sepatutnya berjaya sekarang.</strong>';
+      } else {
+        r3.textContent='❌ Step 3: Apps Script return error'; r3.style.cssText=fail;
+        rr.innerHTML='<strong>❌ Error dari Apps Script:</strong><br>'+esc(d.error||JSON.stringify(d))
+          +'<br><br><strong>Kemungkinan punca:</strong><br>'
+          +'• Sheet ID tidak betul dalam kod Apps Script<br>'
+          +'• Sheet dilindungi / tiada permission untuk write<br>'
+          +'• Kod Apps Script ada bug dalam fungsi doPost()';
+      }
+    }catch(e){
+      r3.textContent='❌ Step 3: Response bukan JSON — Apps Script ada error'; r3.style.cssText=fail;
+      rr.innerHTML='<strong>Raw response dari Apps Script:</strong><br>'+esc(rawResp.substring(0,500))
+        +'<br><br><strong>Ini bermakna:</strong> Apps Script crash / exception dalam doPost()<br>'
+        +'Buka Apps Script → Execution Log untuk tengok error detail.';
+    }
+  }catch(e){
+    r2.textContent='❌ Step 2: POST gagal — '+e.message; r2.style.cssText=fail;
+    rawResp='Error: '+e.message;
+    rr.innerHTML='<strong>❌ POST request gagal:</strong><br>'+esc(e.message)
+      +'<br><br><strong>Kemungkinan punca:</strong><br>'
+      +'• CORS block POST (tapi bukan GET)<br>'
+      +'• Deploy setting "Who has access" perlu set kepada <strong>Anyone</strong><br>'
+      +'• Cuba deploy semula: Manage deployments → Edit → New version';
+    r3.textContent='⏩ Step 3: Dilangkau'; r3.style.cssText='color:var(--muted);';
+  }
+  rr.style.display='block';
+}
+
+async function diagnoseSyncFail(){
+  // Scroll to settings diagnostic and run
+  document.querySelector('[onclick*="settings"]')?.click();
+  setTimeout(()=>runFullDiagnosis(), 300);
+}
+
+// Auto-retry unsynced cases silently on app startup
+async function autoRetryOnLoad(){
+  const {fail}=getSyncCounts();
+  if(fail===0) return;
+  const url=getUrl(); if(!url) return;
+  const cases=getCases().filter(c=>!c.synced);
+  let ok=0;
+  for(const c of cases){
+    try{
+      const res=await callSheets({action:'submitCase',payload:c}, 2);
+      if(res?.success){ markSynced(c.id,true); ok++; }
+    }catch(e){ /* silent fail — user can retry manually */ }
+  }
+  if(ok>0){
+    setSyncBar('✅ Auto-sync: '+ok+' kes berjaya dihantar ke Sheets','ok');
+    renderDashboard();
+  }
+}
+
+async function testConnDetailed(){
+  const url=getUrl();
+  const el=document.getElementById('connTestResult');
+  if(!url){ if(el) el.innerHTML='<span style="color:var(--red)">❌ URL tidak dijumpai.</span>'; return; }
+  if(el) el.innerHTML='<span style="color:var(--amber)">⏳ Testing sambungan ke Apps Script...</span>';
+  try{
+    const r=await fetch(url+'?action=ping',{signal:(()=>{const c=new AbortController();setTimeout(()=>c.abort(),10000);return c.signal;})()});
+    if(!r.ok){ if(el) el.innerHTML='<span style="color:var(--red)">❌ HTTP Error '+r.status+' — Apps Script mungkin perlu re-deploy.</span>'; return; }
+    const d=await r.json();
+    if(d.success){
+      if(el) el.innerHTML='<span style="color:var(--green)">✅ Sambungan OK! Apps Script aktif. Sheet: '+esc(d.message||'')+'</span>';
+      document.getElementById('sheetsBadge').textContent='🟢 Sheets';
+      document.getElementById('sheetsBadge').classList.add('connected');
+    } else {
+      if(el) el.innerHTML='<span style="color:var(--red)">❌ Apps Script respond error: '+(d.error||'Unknown')+'</span>';
+    }
+  }catch(e){
+    if(el) el.innerHTML='<span style="color:var(--red)">❌ Gagal sambung: '+esc(e.message)+'<br>'
+      +'<strong>Kemungkinan sebab:</strong><br>'
+      +'• Apps Script perlu di-deploy semula (Manage deployments → Edit → New version)<br>'
+      +'• URL expired / berubah<br>'
+      +'• Google account perlu re-authorize</span>';
+  }
+}
+
+function saveUrl(){
+  const val=document.getElementById('scriptUrl')?.value.trim()||'';
+  const msg=document.getElementById('urlSaveMsg');
+  if(!val){ if(msg) msg.innerHTML='<span style="color:var(--red)">Sila isi URL.</span>'; return; }
+  if(!val.includes('script.google.com')){ if(msg) msg.innerHTML='<span style="color:var(--amber)">⚠ URL tidak nampak seperti Apps Script URL.</span>'; }
+  localStorage.setItem('ssi_url', val);
+  if(msg) msg.innerHTML='<span style="color:var(--green)">✅ URL disimpan. Klik Test untuk semak.</span>';
+  updateUrlStatus();
+}
+
+// ═══════════ DEBUG / RECOVERY ═══════════
+async function runDebug(){
+  const out=document.getElementById('debugOut');
+  if(!out) return;
+  out.innerHTML='<span style="color:var(--amber)">⏳ Menyemak...</span>';
+
+  const all=getCases();
+  const synced=all.filter(c=>c.synced);
+  const unsynced=all.filter(c=>!c.synced);
+
+  let html='';
+  html+='<div style="background:var(--pre);border-radius:7px;padding:10px 12px;margin-bottom:8px;">';
+  html+='<strong>📦 Jumlah kes dalam app:</strong> '+all.length+'<br>';
+  html+='<span style="color:var(--green)">✅ Sudah sync ke Sheets: '+synced.length+'</span><br>';
+  html+='<span style="color:var(--red)">⚠ Belum sync (stuck): '+unsynced.length+'</span>';
+  html+='</div>';
+
+  if(all.length===0){
+    html+='<div style="color:var(--muted);">localStorage kosong — tiada kes disimpan dalam browser ini.</div>';
+    out.innerHTML=html; return;
+  }
+
+  // Group by dept
+  const byDept={};
+  all.forEach(c=>{
+    const d=c.dept||'(tiada jabatan)';
+    if(!byDept[d]) byDept[d]={total:0,synced:0,unsynced:0};
+    byDept[d].total++;
+    if(c.synced) byDept[d].synced++; else byDept[d].unsynced++;
+  });
+
+  html+='<table style="width:100%;border-collapse:collapse;font-size:.72rem;margin-bottom:10px;">';
+  html+='<tr style="background:var(--pre);"><th style="padding:5px 8px;text-align:left;">Jabatan</th><th style="padding:5px 8px;">Total</th><th style="padding:5px 8px;color:var(--green);">Synced</th><th style="padding:5px 8px;color:var(--red);">Unsynced</th></tr>';
+  Object.entries(byDept).forEach(([d,v])=>{
+    html+='<tr style="border-bottom:1px solid var(--border);">';
+    html+='<td style="padding:5px 8px;font-weight:600;">'+esc(d)+'</td>';
+    html+='<td style="padding:5px 8px;text-align:center;">'+v.total+'</td>';
+    html+='<td style="padding:5px 8px;text-align:center;color:var(--green);">'+v.synced+'</td>';
+    html+='<td style="padding:5px 8px;text-align:center;color:'+(v.unsynced>0?'var(--red)':'var(--muted)')+';">'+v.unsynced+'</td>';
+    html+='</tr>';
+  });
+  html+='</table>';
+
+  if(unsynced.length>0){
+    html+='<button class="btn btn-amber btn-sm" onclick="forceResyncAll()" style="margin-right:6px;">🔄 Hantar Semula Semua ke Sheets ('+unsynced.length+' kes)</button>';
+  }
+
+  // Juga list 5 kes terbaru untuk verify
+  html+='<div style="margin-top:10px;font-size:.70rem;color:var(--muted);">5 kes terbaru dalam app:</div>';
+  const recent=[...all].sort((a,b)=>new Date(b.saved_at||0)-new Date(a.saved_at||0)).slice(0,5);
+  recent.forEach(c=>{
+    const syncBadge=c.synced
+      ?'<span style="color:var(--green);font-size:.65rem;">✅ synced</span>'
+      :'<span style="color:var(--red);font-size:.65rem;">⚠ unsynced</span>';
+    html+='<div style="background:var(--bg);border-radius:5px;padding:5px 8px;margin-top:4px;">'
+      +syncBadge+' <strong>'+esc(c.name||'-')+'</strong> | '+esc(c.dept||'-')+' | '+esc(c.sdate||'-')+' | '+esc(c.sp||'-')
+      +'</div>';
+  });
+
+  out.innerHTML=html;
+}
+
+async function forceResyncAll(){
+  const out=document.getElementById('debugOut');
+  const unsynced=getCases().filter(c=>!c.synced);
+  if(!unsynced.length){if(out) out.innerHTML+='<br>✅ Tiada kes yang perlu di-sync.'; return;}
+
+  if(out) out.innerHTML+='<br><span style="color:var(--amber)">⏳ Menghantar '+unsynced.length+' kes ke Sheets...</span>';
+  let ok=0, fail=0;
+  for(const c of unsynced){
+    try{
+      const res=await callSheets({action:'submitCase',payload:c},3);
+      if(res?.success){ markSynced(c.id,true); ok++; }
+      else fail++;
+    }catch(e){ fail++; }
+  }
+  const msg=ok>0
+    ?'✅ '+ok+' kes berjaya dihantar!'+(fail>0?' ⚠ '+fail+' masih gagal.':'')
+    :'❌ Semua gagal — semak Apps Script.';
+  if(out) out.innerHTML+='<br><strong>'+msg+'</strong>';
+  setSyncBar(msg, ok>0&&fail===0?'ok':'err');
+  // Refresh debug view
+  setTimeout(runDebug, 500);
+}
+
+
+function renderSettings(){
+  const saved=getUrl();
+  const el=document.getElementById('scriptUrl'); if(el&&saved) el.value=saved;
+  updateUrlStatus();
+  renderSurgList();
+  renderDeptList();
+  syncDeptDropdowns();
+
+  // Show debug section for coordinator only
+  const dbg=document.getElementById('debugSection');
+  if(dbg) dbg.style.display=isCoordinator()?'':'none';
+
+  // Sync counts
+  const {total, ok, fail}=getSyncCounts();
+  const elTotal=document.getElementById('syncTotal');
+  const elOk=document.getElementById('syncOkCount');
+  const elFail=document.getElementById('syncFailCount');
+  if(elTotal) elTotal.textContent=total;
+  if(elOk) elOk.textContent=ok;
+  if(elFail) elFail.textContent=fail;
+
+  // Show warning if there are unsynced cases
+  const warn=document.getElementById('pendingSyncWarn');
+  if(warn) warn.style.display=fail>0?'block':'none';
+}
+
+function renderDeptList(){
+  const depts=getDepts();
+  const pw=getPasswords();
+  const el=document.getElementById('deptList'); if(!el) return;
+  if(!depts.length){el.innerHTML='<p style="font-size:.75rem;color:var(--muted)">Tiada jabatan.</p>';return;}
+  el.innerHTML=depts.map((d,i)=>
+    '<div style="background:var(--bg);border-radius:7px;padding:8px 10px;margin-bottom:2px;" id="deptRow_'+i+'">'
+    +'<div style="display:flex;align-items:center;gap:7px;">'
+    +'<div style="flex:1;">'
+    +'<div style="font-size:.80rem;font-weight:600;">'+esc(d)+'</div>'
+    +'<div style="font-size:.68rem;color:var(--muted);">Kata laluan: ••••••</div>'
+    +'</div>'
+    +'<button class="btn btn-outline btn-sm" onclick="toggleEditDept('+i+')">✏️ Edit</button>'
+    +'<button class="btn btn-danger btn-sm" onclick="delDept('+i+')">Padam</button>'
+    +'</div>'
+    +'<div id="deptEdit_'+i+'" style="display:none;margin-top:8px;padding-top:8px;border-top:1px solid var(--border);">'
+    +'<div class="grid2" style="gap:8px;margin-bottom:7px;">'
+    +'<div class="fg"><label>Nama Jabatan</label>'
+    +'<input type="text" id="den_'+i+'" value="'+esc(d)+'"></div>'
+    +'<div class="fg"><label>Tukar Kata Laluan</label>'
+    +'<input type="password" id="depw_'+i+'" placeholder="Kata laluan baru..."></div>'
+    +'</div>'
+    +'<div style="display:flex;gap:6px;">'
+    +'<button class="btn btn-primary btn-sm" onclick="saveDeptEdit('+i+')">💾 Simpan</button>'
+    +'<button class="btn btn-outline btn-sm" onclick="toggleEditDept('+i+')">Batal</button>'
+    +'</div></div>'
+    +'</div>'
+  ).join('');
+}
+
+function toggleEditDept(i){
+  const el=document.getElementById('deptEdit_'+i);
+  if(el) el.style.display=el.style.display==='none'?'block':'none';
+}
+
+function saveDeptEdit(i){
+  const newName=document.getElementById('den_'+i)?.value.trim();
+  const newPw=document.getElementById('depw_'+i)?.value.trim();
+  if(!newName){alert('Nama jabatan tidak boleh kosong.');return;}
+  const depts=getDepts();
+  const oldName=depts[i];
+  depts[i]=newName;
+  sd('depts',depts);
+  // Update password if provided
+  if(newPw){
+    if(newPw.length<6){alert('Kata laluan mesti sekurang-kurangnya 6 aksara.');return;}
+    const pw=getPasswords();
+    // If dept name changed, move password
+    if(oldName!==newName){ pw[newName]=newPw; delete pw[oldName]; }
+    else { pw[newName]=newPw; }
+    localStorage.setItem('ssi_passwords',JSON.stringify(pw));
+  } else if(oldName!==newName){
+    // Move password to new name
+    const pw=getPasswords();
+    pw[newName]=pw[oldName]||'dept2025';
+    delete pw[oldName];
+    localStorage.setItem('ssi_passwords',JSON.stringify(pw));
+  }
+  // Update any existing cases with old dept name
+  const cases=getCases();
+  cases.forEach(c=>{ if(c.dept===oldName) c.dept=newName; });
+  sd('cases',cases);
+  renderDeptList();
+  syncDeptDropdowns();
+  alert('✅ Jabatan '+newName+' dikemaskini!');
+}
+
+function onUrlChange(){setUrl(document.getElementById('scriptUrl').value.trim());updateUrlStatus();}
+
+function updateUrlStatus(){
+  const el=document.getElementById('urlStatus'); if(!el) return;
+  const u=getUrl();
+  el.innerHTML=u
+    ?'<span style="background:#eafaf1;color:#27ae60;border:1px solid #abebc6;padding:2px 9px;border-radius:12px;font-size:.70rem;font-weight:600;">✓ URL disimpan</span>'
+    :'<span style="background:#fef5e7;color:#e67e22;border:1px solid #f5cba7;padding:2px 9px;border-radius:12px;font-size:.70rem;font-weight:600;">⚠ Belum diisi</span>';
+}
+
+function addDept(){
+  const n=document.getElementById('newDept').value.trim();
+  const pw=document.getElementById('newDeptPw')?.value.trim()||'dept2025';
+  if(!n){alert('Sila isi nama jabatan.');return;}
+  if(pw.length<6){alert('Kata laluan mesti sekurang-kurangnya 6 aksara.');return;}
+  const d=getDepts();
+  if(d.includes(n)){alert('Jabatan sudah wujud.');return;}
+  d.push(n); sd('depts',d);
+  // Save password
+  const passwords=getPasswords();
+  passwords[n]=pw;
+  localStorage.setItem('ssi_passwords',JSON.stringify(passwords));
+  // Add to login dropdown
+  const loginSel=document.getElementById('loginDept');
+  if(loginSel){
+    const opt=document.createElement('option');
+    opt.value=n; opt.textContent='🏥 '+n;
+    loginSel.appendChild(opt);
+  }
+  document.getElementById('newDept').value='';
+  if(document.getElementById('newDeptPw')) document.getElementById('newDeptPw').value='';
+  renderSettings();
+  alert('✅ Jabatan '+n+' ditambah! Kata laluan: '+pw);
+}
+function delDept(i){if(!confirm('Padam?'))return;const d=getDepts();d.splice(i,1);sd('depts',d);renderSettings();}
+
+function syncDeptDropdowns(){
+  const depts=getDepts();
+  const user=getCurrentUser();
+  const coord=isCoordinator();
+  const userDept=getUserDept();
+
+  // Entry form dept dropdown
+  const fd=document.getElementById('f_dept');
+  if(fd){
+    if(coord){
+      fd.innerHTML='<option value="">-- Pilih --</option>'+depts.map(d=>'<option>'+esc(d)+'</option>').join('');
+      fd.disabled=false;
+      fd.style.background='';
+    } else {
+      fd.innerHTML='<option value="'+esc(userDept)+'">'+esc(userDept)+'</option>';
+      fd.disabled=true;
+      fd.style.background='#f5f5f5';
+      fd.style.color='var(--muted)';
+    }
+  }
+
+  // Dashboard dept filter — coordinator only, dept user hidden
+  const dd=document.getElementById('dashDept');
+  if(dd){
+    dd.innerHTML='<option value="">Semua Jabatan</option>'+depts.map(d=>'<option>'+esc(d)+'</option>').join('');
+    dd.style.display=coord?'':'none';
+  }
+
+  // Records filter
+  const fd2=document.getElementById('fDept');
+  if(fd2){
+    if(coord){
+      fd2.innerHTML='<option value="">Semua Jabatan</option>'+depts.map(d=>'<option>'+esc(d)+'</option>').join('');
+      fd2.style.display='';
+    } else {
+      fd2.innerHTML='<option value="">'+esc(userDept)+'</option>';
+      fd2.style.display='none';
+    }
+  }
+
+  // SSI page filter — coordinator only
+  const fd3=document.getElementById('ssiFilterDept');
+  if(fd3){
+    if(coord){
+      fd3.innerHTML='<option value="">Semua Jabatan</option>'+depts.map(d=>'<option>'+esc(d)+'</option>').join('');
+      fd3.style.display='';
+    } else {
+      fd3.innerHTML='<option value="">'+esc(userDept)+'</option>';
+      fd3.style.display='none';
+    }
+  }
+}
+
+function renderSettingsAccess(){
+  const coord = isCoordinator();
+  const pwSection = document.getElementById('pwSection');
+  if(pwSection) pwSection.style.display = coord ? 'block' : 'none';
+  const dangerSection = document.getElementById('dangerSection');
+  if(dangerSection) dangerSection.style.display = coord ? 'block' : 'none';
+}
+
+function changePassword(dept){
+  const input = document.getElementById('pw_'+dept.replace(/[^a-zA-Z]/g,''));
+  if(!input || !input.value.trim()){ alert('Sila masukkan kata laluan baru.'); return; }
+  if(input.value.trim().length < 6){ alert('Kata laluan mesti sekurang-kurangnya 6 aksara.'); return; }
+  const pw = getPasswords();
+  pw[dept] = input.value.trim();
+  localStorage.setItem('ssi_passwords', JSON.stringify(pw));
+  input.value = '';
+  alert('✅ Kata laluan '+dept+' berjaya ditukar!');
+}
+
+function resetPassword(dept){
+  if(!confirm('Reset kata laluan '+dept+' kepada default?')) return;
+  const pw = getPasswords();
+  pw[dept] = DEFAULT_PASSWORDS[dept];
+  localStorage.setItem('ssi_passwords', JSON.stringify(pw));
+  alert('✅ Kata laluan '+dept+' direset kepada default.');
+}
+
+function clearAll(){
+  if(!confirm('Padam semua data tempatan? Data dalam Sheets tidak terpadam.')) return;
+  localStorage.removeItem('ssi_cases');
+  alert('Data tempatan dipadam.');
+  renderDashboard();
+}
+
+// ═══════════ SSI UPDATE PAGE ═══════════
+function renderSSIPage(){
+  syncSsiFilterDepts();
+  const dept=document.getElementById('ssiFilterDept')?.value||'';
+  const status=document.getElementById('ssiFilterStatus')?.value||'pending';
+  const search=(document.getElementById('ssiFilterSearch')?.value||'').toLowerCase();
+  const today=new Date(); today.setHours(0,0,0,0);
+
+  let cases=getCasesForUser();
+  if(dept) cases=cases.filter(c=>c.dept===dept);
+  if(search) cases=cases.filter(c=>(c.name||'').toLowerCase().includes(search)||(c.mrn||'').toLowerCase().includes(search));
+
+  // Calculate surveillance status
+  cases=cases.map(c=>{
+    const surgDate=new Date(c.sdate+'T00:00:00');
+    const survDays=c.surv==='30 DAYS'?30:c.surv==='365 DAYS'?365:90;
+    const endDate=new Date(surgDate); endDate.setDate(endDate.getDate()+survDays);
+    const daysLeft=Math.ceil((endDate-today)/(1000*60*60*24));
+    const expired=daysLeft<0;
+    return{...c,survDays,endDate,daysLeft,expired};
+  });
+
+  // Filter by status
+  if(status==='pending') cases=cases.filter(c=>!c.ssiclass&&!c.expired);
+  else if(status==='ssi') cases=cases.filter(c=>c.ssiclass);
+
+  cases.sort((a,b)=>a.daysLeft-b.daysLeft);
+
+  // Update pending badge
+  const pendingN=getCases().filter(c=>{
+    const sd=new Date(c.sdate+'T00:00:00');
+    const days=c.surv==='30 DAYS'?30:c.surv==='365 DAYS'?365:90;
+    const ed=new Date(sd); ed.setDate(ed.getDate()+days);
+    return !c.ssiclass && ed>=today;
+  }).length;
+  const badge=document.getElementById('ssiPendingBadge');
+  if(badge){ badge.textContent=pendingN; badge.style.display=pendingN>0?'inline':'none'; }
+
+  const tb=document.getElementById('ssiTbl');
+  if(!cases.length){
+    tb.innerHTML='<tr><td colspan="10"><div class="empty"><div class="ei">✅</div><p>Tiada kes dalam senarai ini</p></div></td></tr>';
+    return;
+  }
+
+  tb.innerHTML=cases.map((c,i)=>{
+    const hasSSI=!!c.ssiclass;
+    let daysLbl, daysStyle;
+    if(hasSSI){
+      daysLbl='<span class="tag tag-red">SSI Day '+esc(c.ssiday||'?')+'</span>';
+      daysStyle='';
+    } else if(c.expired){
+      daysLbl='<span class="tag" style="background:#f0f0f0;color:#999;">Tamat</span>';
+      daysStyle='color:var(--muted);';
+    } else if(c.daysLeft<=7){
+      daysLbl='<span class="tag tag-red">'+c.daysLeft+' hari</span>';
+      daysStyle='';
+    } else if(c.daysLeft<=14){
+      daysLbl='<span class="tag tag-amber">'+c.daysLeft+' hari</span>';
+      daysStyle='';
+    } else {
+      daysLbl='<span class="tag tag-green">'+c.daysLeft+' hari</span>';
+      daysStyle='';
+    }
+
+    const survTag='<span class="tag tag-teal">'+esc(c.surv||'90 DAYS')+'</span>';
+    const ssiStatus=hasSSI
+      ?'<span class="tag '+(c.ssiclass==='Superficial Incisional'?'tag-amber':c.ssiclass==='Deep Incisional'?'tag-red':'tag-purple')+'">'+esc(c.ssiclass)+'</span>'
+      :(c.expired?'<span class="tag" style="background:#f0f0f0;color:#999;">Selesai</span>':'<span class="tag tag-green">Tiada SSI</span>');
+
+    const actionBtn=hasSSI
+      ?'<button class="btn btn-outline btn-sm" onclick="viewCase(\''+c.id+'\')">👁 Lihat</button>'
+      :(c.expired?'<button class="btn btn-outline btn-sm" style="color:var(--muted);border-color:var(--muted);" onclick="openSsiModal(\''+c.id+'\')">+ Update</button>'
+      :'<button class="btn btn-sm" style="background:#8e44ad;color:#fff;" onclick="openSsiModal(\''+c.id+'\')">🔴 Update SSI</button>');
+
+    return'<tr style="'+daysStyle+'">'
+      +'<td style="color:var(--muted);font-size:.68rem;">'+(i+1)+'</td>'
+      +'<td><strong>'+esc(c.name||'-')+'</strong><br><span style="font-size:.68rem;color:var(--muted);">'+esc(c.mrn||'-')+'</span></td>'
+      +'<td style="font-family:monospace;font-size:.68rem;">'+esc(c.mrn||'-')+'</td>'
+      +'<td>'+esc(c.dept||'-')+'</td>'
+      +'<td>'+fmtD(c.sdate)+'</td>'
+      +'<td style="font-size:.72rem;">'+esc(c.sp||'-')+'</td>'
+      +'<td>'+survTag+'</td>'
+      +'<td>'+daysLbl+'</td>'
+      +'<td>'+ssiStatus+'</td>'
+      +'<td style="white-space:nowrap;">'+actionBtn+' <button class="btn btn-outline btn-sm" onclick="printCase(\''+c.id+'\')">🖨</button></td>'
+      +'</tr>';
+  }).join('');
+}
+
+function syncSsiFilterDepts(){
+  const depts=getDepts();
+  const el=document.getElementById('ssiFilterDept'); if(!el) return;
+  const cur=el.value;
+  el.innerHTML='<option value="">Semua Jabatan</option>'+depts.map(d=>'<option>'+esc(d)+'</option>').join('');
+  if(cur) el.value=cur;
+}
+
+let _ssiTargetId=null;
+
+function openSsiModal(id){
+  const c=getCases().find(x=>x.id===id); if(!c) return;
+  _ssiTargetId=id;
+
+  // Helper to set text safely
+  const st=(elId,val)=>{ const e=document.getElementById(elId); if(e) e.textContent=val||'-'; };
+
+  // Patient detail
+  document.getElementById('ssiModalName').textContent=c.name||'-';
+  st('sm_hosp', c.hosp);
+  st('sm_dept', c.dept);
+  st('sm_name', c.name);
+  st('sm_race', c.race);
+  st('sm_age', (c.age||'-')+' tahun / '+(c.gender||'-'));
+  st('sm_mrn', c.mrn);
+  st('sm_sdate', fmtD(c.sdate));
+  st('sm_sp', c.sp);
+  st('sm_times', (c.tstart||'-')+' — '+(c.tend||'-')+(c.dur?' ('+c.dur+' min)':''));
+
+  // Surgery info
+  st('sm_stype', c.stype);
+  st('sm_surgeon', c.surgeon);
+  st('sm_dur', c.dur ? c.dur+' minit' : '-');
+
+  // Pre-op
+  st('sm_diag', c.diag);
+  st('sm_admit', fmtD(c.admit));
+  st('sm_bmi', c.bmi);
+  st('sm_dm', c.dm);
+  st('sm_preabx', c.preabx);
+  st('sm_bathing', c.bathing);
+  st('sm_hair', c.hair);
+  st('sm_smoke', c.smoke);
+  st('sm_immuno', c.immuno||'None');
+
+  // Intra-op
+  st('sm_skin1', c.skin1);
+  st('sm_skin2', c.skin2);
+  st('sm_intraabx', c.intraabx);
+  st('sm_abxtime', c.abxtime||'-');
+  st('sm_redose', [c.redose, c.redosereason, c.redoseother].filter(Boolean).join(' / ')||'-');
+  st('sm_drain', c.drain);
+
+  // Post-op
+  st('sm_sugar', c.sugar);
+  st('sm_abxdur', c.abxdur);
+
+  // SSI fields — pre-fill if already updated
+  document.getElementById('su_ssiday').value=c.ssiday||'';
+  document.getElementById('su_ssisite').value=c.ssisite||'';
+  document.getElementById('su_org').value=c.org||'';
+  document.getElementById('su_notes').value=c.notes||'';
+  document.getElementById('su_readmit').value=c.readmit_date||'';
+  document.querySelectorAll('input[name="su_class"]').forEach(r=>r.checked=r.value===c.ssiclass);
+  document.querySelectorAll('input[name="su_diag"]').forEach(r=>r.checked=r.value===c.ssidiag);
+  document.getElementById('su_msg').innerHTML='';
+
+  document.getElementById('ssiUpdateOv').classList.add('open');
+}
+
+function printSsiModal(){
+  if(!_ssiTargetId) return;
+  closeSsiModal();
+  setTimeout(()=>printCase(_ssiTargetId), 100);
+}
+
+function closeSsiModal(){
+  document.getElementById('ssiUpdateOv').classList.remove('open');
+  _ssiTargetId=null;
+}
+
+async function saveSsiUpdate(){
+  if(!_ssiTargetId) return;
+  const ssiday=document.getElementById('su_ssiday').value;
+  const ssiclass=document.querySelector('input[name="su_class"]:checked')?.value||'';
+  if(!ssiday){document.getElementById('su_msg').innerHTML='<span style="color:var(--red)">Sila isi hari SSI dikenal pasti.</span>';return;}
+  if(!ssiclass){document.getElementById('su_msg').innerHTML='<span style="color:var(--red)">Sila pilih klasifikasi SSI.</span>';return;}
+
+  document.getElementById('su_msg').innerHTML='<span style="color:var(--teal)">⏳ Menyimpan...</span>';
+
+  const ssiData={
+    ssiday, ssisite:document.getElementById('su_ssisite').value,
+    ssiclass, ssidiag:document.querySelector('input[name="su_diag"]:checked')?.value||'',
+    org:document.getElementById('su_org').value,
+    notes:document.getElementById('su_notes').value,
+    readmit_date:document.getElementById('su_readmit').value,
+    ssi_updated_at:new Date().toISOString()
+  };
+
+  // Update local
+  const cases=getCases();
+  const idx=cases.findIndex(c=>c.id===_ssiTargetId);
+  if(idx>=0){ Object.assign(cases[idx],ssiData); sd('cases',cases); }
+
+  // Sync to Sheets
+  if(getUrl()){
+    const res=await callSheets({action:'updateSSI',id:_ssiTargetId,ssiData});
+    if(res?.success){
+      markSynced(_ssiTargetId, true);
+      document.getElementById('su_msg').innerHTML='<span style="color:var(--green)">✅ SSI disimpan &amp; sync ke Sheets!</span>';
+      setSyncBar('✅ SSI update berjaya sync ke Sheets','ok');
+    } else {
+      markSynced(_ssiTargetId, false);
+      document.getElementById('su_msg').innerHTML='<span style="color:var(--amber)">⚠ Disimpan tempatan. Gagal sync Sheets: '+(res?.error||'Timeout')+'<br>Boleh retry di Tetapan → Cuba Sync Semula.</span>';
+    }
+  } else {
+    document.getElementById('su_msg').innerHTML='<span style="color:var(--green)">✅ SSI disimpan dalam app.</span>';
+  }
+
+  setTimeout(()=>{
+    closeSsiModal();
+    renderSSIPage();
+    renderDashboard();
+  },1200);
+}
+
+// ═══════════ DENOMINATOR ═══════════
+function getDenoms(){ return gd('denoms',{}); }
+function getDenom(dept,yr){
+  const d=getDenoms();
+  return(d[dept]&&d[dept][yr])?parseInt(d[dept][yr]):0;
+}
+function saveDenom(dept,yr,val){
+  const num=parseInt(val)||0;
+  const d=getDenoms();
+  if(!d[dept]) d[dept]={};
+  if(num>0) d[dept][yr]=num;
+  else delete d[dept][yr];
+  sd('denoms',d);
+  // Refresh rate + risk factors without full re-render
+  renderDashboard();
+}
+
+// ═══════════ RISK FACTORS — BAR CHART ═══════════
+function renderRisks(cases){
+  const n=cases.length;
+  const noData='<div style="grid-column:1/-1;text-align:center;padding:16px;color:var(--muted);font-size:.76rem;">Tiada data untuk tempoh ini.</div>';
+
+  if(!n){
+    ['rf-pre','rf-intra','rf-post'].forEach(id=>{
+      const el=document.getElementById(id);
+      if(el) el.innerHTML=noData;
+    });
+    return;
+  }
+
+  // Helper: count + percentage + color
+  function rf(fn, warn=20){
+    const c=cases.filter(fn).length;
+    const pct=parseFloat(((c/n)*100).toFixed(1));
+    const col=pct>=warn?'#c0392b':pct>=10?'#e67e22':'#27ae60';
+    return{c,pct,col};
+  }
+
+  // Bar row builder
+  function bar(label, stat, hint=''){
+    const w=Math.min(stat.pct,100);
+    return '<div class="rf-row">'
+      +'<div class="rf-lbl" title="'+esc(hint)+'">'+label+'</div>'
+      +'<div class="rf-track">'
+      +'<div class="rf-fill" style="width:'+w+'%;background:'+stat.col+';"></div>'
+      +'</div>'
+      +'<div class="rf-pct" style="color:'+stat.col+';">'+stat.pct+'%</div>'
+      +'<div class="rf-cnt">('+stat.c+'/'+n+')</div>'
+      +'</div>';
+  }
+
+  // ── PRE-OPERATIVE ──
+  const pre=[
+    bar('Diabetes Mellitus',     rf(c=>c.dm==='YES',30),       'Risk: ↑ SSI infection'),
+    bar('Obesiti (BMI ≥ 30)',    rf(c=>parseFloat(c.bmi||0)>=30,20), 'Risk: ↓ blood supply'),
+    bar('Perokok Aktif',         rf(c=>c.smoke==='ACTIVE',10), 'Risk: ↓ wound healing'),
+    bar('Immunosuppressant',     rf(c=>c.immuno&&c.immuno!=='None'&&c.immuno.trim()!=='',15), 'Risk: ↓ immunity'),
+    bar('Tiada ABX Pre-op',      rf(c=>c.preabx==='NO',20),    'Risk: ↑ bacterial load'),
+    bar('Tiada Pre-op Bathing',  rf(c=>c.bathing==='NO',10),   'Risk: ↑ skin flora'),
+    bar('Hair Removal: Shaving', rf(c=>c.hair==='Shaving',5),  'Preferred: Clipper only'),
+    bar('Admission >2 Hari',     rf(c=>{
+      if(!c.admit||!c.sdate) return false;
+      return(new Date(c.sdate)-new Date(c.admit))/(86400000)>2;
+    },20), 'Risk: ↑ HAI exposure'),
+  ];
+  document.getElementById('rf-pre').innerHTML=pre.join('');
+
+  // ── INTRA-OPERATIVE ──
+  const intra=[
+    bar('Tiada ABX Intra-op',     rf(c=>c.intraabx==='NO',20),  'Risk: ↑ infection'),
+    bar('Drain Dipasang',         rf(c=>c.drain==='YES',15),     'Risk: ↑ infection source'),
+    bar('Redosing Dilakukan',     rf(c=>c.redose&&c.redose!=='No'&&c.redose.trim()!=='',10), 'Prolonged/blood loss'),
+    bar('Antimicrobial Sutures',  rf(c=>c.sutures==='YES',0),    'Used for high-risk cases'),
+    bar('ABX Masa Tiada Rekod',   rf(c=>c.intraabx==='YES'&&!c.abxtime,20), 'Timing not documented'),
+    bar('Skin Prep Aqueous Sahaja',rf(c=>(c.skin1==='AQUEOUS BASE')&&c.skin2!=='CHLORHEXIDINE'&&c.skin2!=='ALCOHOL BASE',5),'Better: Alcohol-based'),
+  ];
+  document.getElementById('rf-intra').innerHTML=intra.join('');
+
+  // ── POST-OPERATIVE ──
+  const post=[
+    bar('Gula Tidak Terkawal >11.1', rf(c=>c.sugar==='YES',20),  'Risk: ↑ SSI significantly'),
+    bar('ABX Duration ≥24 jam',      rf(c=>c.abxdur&&(c.abxdur.includes('≥24')||c.abxdur.includes('≥48')),20), 'Antibiotic stewardship'),
+    bar('Pesakit Readmitted',        rf(c=>c.readmit==='YES',5),  'Possible SSI-related'),
+  ];
+  // Post-op: single column layout
+  document.getElementById('rf-post').style.gridTemplateColumns='1fr';
+  document.getElementById('rf-post').innerHTML=post.join('');
+}
+
+// ═══════════ RUJUKAN / REFERENCES ═══════════
+function getRefs(){ return gd('refs',[]); }
+
+const DEFAULT_REFS = [
+  {id:'r1', title:'SSI Prevention & Surveillance Guideline 2023 — KKM',
+   cat:'Guideline', url:'https://hq.moh.gov.my/medicaldev/ckpp/unit-audit-klinikal/',
+   desc:'Ministry of Health Malaysia, 2023'},
+  {id:'r2', title:'WHO Global Guidelines for Prevention of SSI (2018)',
+   cat:'Guideline', url:'https://www.who.int/publications/i/item/9789241550475',
+   desc:'World Health Organization'},
+  {id:'r3', title:'CDC NHSN SSI Protocol',
+   cat:'Guideline', url:'https://www.cdc.gov/nhsn/pdfs/pscmanual/9pscssicurrent.pdf',
+   desc:'Centers for Disease Control and Prevention'},
+  {id:'r4', title:'APSIC Guidelines for Prevention of SSI (2018)',
+   cat:'Guideline', url:'http://apsic-apac.org/wp-content/uploads/2018/05/APSIC-SSI-Prevention-guideline-March-2018.pdf',
+   desc:'Asia Pacific Society of Infection Control'},
+  {id:'r5', title:'SSI Data Collection Form — Appendix 2 KKM',
+   cat:'Form', url:'https://hq.moh.gov.my/medicaldev/ckpp/unit-audit-klinikal/',
+   desc:'Borang pengumpulan data SSI — KKM 2023'},
+];
+
+function renderRujukan(){
+  const coord=isCoordinator();
+  // Show admin section for coordinator only
+  const admin=document.getElementById('refAdminSection');
+  if(admin) admin.style.display=coord?'block':'none';
+  const addBtn=document.getElementById('refAddBtn');
+  if(addBtn) addBtn.style.display=coord?'flex':'none';
+
+  // Load drive folder
+  const folderUrl=localStorage.getItem('ssi_driveFolder')||'';
+  const folderSec=document.getElementById('driveFolderSection');
+  const folderFrame=document.getElementById('driveFolderFrame');
+  const folderLink=document.getElementById('driveFolderLink');
+  const folderInput=document.getElementById('driveFolderUrl');
+  if(folderUrl){
+    if(folderSec) folderSec.style.display='block';
+    // Convert share URL to embed URL
+    const embedUrl=folderUrl.replace('/view?usp=sharing','/preview')
+      .replace('drive.google.com/drive/folders/','drive.google.com/embeddedfolderview?id=')
+      .replace('?usp=sharing','&resourcekey=0-PLACEHOLDER');
+    if(folderFrame) folderFrame.src=folderUrl.replace('drive.google.com/drive/folders/','drive.google.com/embeddedfolderview?id=').split('?')[0];
+    if(folderLink){ folderLink.href=folderUrl; }
+    if(folderInput) folderInput.value=folderUrl;
+  } else {
+    if(folderSec) folderSec.style.display='none';
+  }
+
+  // Render ref list
+  const saved=getRefs();
+  const refs=saved.length>0?saved:DEFAULT_REFS;
+  const list=document.getElementById('refList');
+  const empty=document.getElementById('refEmpty');
+  if(!refs.length){
+    if(list) list.innerHTML='';
+    if(empty) empty.style.display='block';
+    return;
+  }
+  if(empty) empty.style.display='none';
+
+  const catIcon={
+    'Guideline':'📘','SOP':'📋','Article':'📄','Form':'📝','Other':'📎'
+  };
+  const catClass={
+    'Guideline':'ref-cat-guideline','SOP':'ref-cat-sop',
+    'Article':'ref-cat-article','Form':'ref-cat-sop','Other':'ref-cat-other'
+  };
+
+  list.innerHTML=refs.map((r,i)=>{
+    const icon=catIcon[r.cat]||'📎';
+    const cls=catClass[r.cat]||'ref-cat-other';
+    return '<div class="ref-card">'
+      +'<div class="ref-icon '+cls+'">'+icon+'</div>'
+      +'<div class="ref-meta">'
+      +'<div class="ref-title">'+esc(r.title)+'</div>'
+      +'<div class="ref-sub">'+esc(r.cat)+(r.desc?' · '+esc(r.desc):'')+'</div>'
+      +'</div>'
+      +'<div style="display:flex;gap:5px;flex-shrink:0;">'
+      +'<a href="'+esc(r.url)+'" target="_blank" class="btn btn-primary btn-sm" style="text-decoration:none;">Buka ↗</a>'
+      +(coord?'<button class="btn btn-danger btn-sm" onclick="delRef(\''+esc(r.id)+'\')">🗑</button>':'')
+      +'</div>'
+      +'</div>';
+  }).join('');
+}
+
+function saveDriveFolder(){
+  const url=document.getElementById('driveFolderUrl')?.value.trim()||'';
+  if(!url){localStorage.removeItem('ssi_driveFolder');}
+  else{localStorage.setItem('ssi_driveFolder',url);}
+  renderRujukan();
+  const msg=document.getElementById('ref_msg');
+  if(msg) msg.innerHTML='<span style="color:var(--green)">✅ URL folder disimpan.</span>';
+}
+
+function addRef(){
+  const title=(document.getElementById('ref_title')?.value||'').trim();
+  const cat=document.getElementById('ref_cat')?.value||'Other';
+  const url=(document.getElementById('ref_url')?.value||'').trim();
+  const desc=(document.getElementById('ref_desc')?.value||'').trim();
+  const msg=document.getElementById('ref_msg');
+
+  if(!title){if(msg)msg.innerHTML='<span style="color:var(--red)">Sila isi tajuk.</span>';return;}
+  if(!url){if(msg)msg.innerHTML='<span style="color:var(--red)">Sila isi URL.</span>';return;}
+
+  const refs=getRefs();
+  // Use default refs as base if empty
+  const base=refs.length>0?refs:[...DEFAULT_REFS];
+  base.push({id:'r_'+Date.now(),title,cat,url,desc});
+  sd('refs',base);
+
+  if(document.getElementById('ref_title')) document.getElementById('ref_title').value='';
+  if(document.getElementById('ref_url')) document.getElementById('ref_url').value='';
+  if(document.getElementById('ref_desc')) document.getElementById('ref_desc').value='';
+  if(msg) msg.innerHTML='<span style="color:var(--green)">✅ Rujukan ditambah.</span>';
+  renderRujukan();
+}
+
+function delRef(id){
+  if(!confirm('Padam rujukan ini?')) return;
+  const refs=getRefs();
+  const base=refs.length>0?refs:[...DEFAULT_REFS];
+  const updated=base.filter(r=>r.id!==id);
+  sd('refs',updated);
+  renderRujukan();
+}
+
+// ═══════════ CSV ═══════════
+function exportCSV(){
+  const cases=getCases(); if(!cases.length){alert('Tiada data.');return;}
+  const hdr=['ID','Nama','MRN','Jabatan','Tarikh_Surgery','Surgery_Performed','Prosedur','Jenis_Surgery','SSI_Class','Organisma','BMI','DM','Drain','Catatan'];
+  const rows=cases.map(c=>[c.id,c.name,c.mrn,c.dept,c.sdate,c.sp,c.proc,c.stype,c.ssiclass||'',c.org,c.bmi,c.dm,c.drain,c.notes]
+    .map(v=>'"'+(v||'').toString().replace(/"/g,'""')+'"').join(','));
+  const blob=new Blob(['\uFEFF'+[hdr.join(','),...rows].join('\n')],{type:'text/csv;charset=utf-8;'});
+  const a=document.createElement('a');
+  a.href=URL.createObjectURL(blob);
+  a.download='SSI_'+new Date().toISOString().split('T')[0]+'.csv';
+  a.click();
+}
+
+function exportUnsyncedCSV(){
+  const cases=getCases().filter(c=>!c.synced);
+  if(!cases.length){alert('Tiada kes yang perlu dihantar.');return;}
+  const hdr=['ID','Nama','MRN','Jabatan','Tarikh_Surgery','Surgery_Performed','Prosedur','Jenis_Surgery','DM','BMI','Drain','Saved_At'];
+  const rows=cases.map(c=>[c.id,c.name,c.mrn,c.dept,c.sdate,c.sp,c.proc,c.stype,c.dm,c.bmi,c.drain,c.saved_at]
+    .map(v=>'"'+(v||'').toString().replace(/"/g,'""')+'"').join(','));
+  const blob=new Blob(['\uFEFF'+[hdr.join(','),...rows].join('\n')],{type:'text/csv;charset=utf-8;'});
+  const a=document.createElement('a');
+  a.href=URL.createObjectURL(blob);
+  a.download='SSI_BelumSync_'+getUserDept()+'_'+new Date().toISOString().split('T')[0]+'.csv';
+  a.click();
+  alert('✅ File CSV didownload.\n\nForward fail ini kepada Coordinator IPC supaya data boleh dimasukkan semula ke sistem.\n\n('+cases.length+' kes dalam fail ini)');
+}
+
+// ═══════════ UTILS ═══════════
+function fmtD(d){
+  if(!d) return '-';
+  try{return new Date(d+'T00:00:00').toLocaleDateString('ms-MY',{day:'2-digit',month:'short',year:'numeric'});}
+  catch(e){return d;}
+}
+function esc(s){return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
+
+// ═══════════ AUTH ═══════════
+// Kata laluan — coordinator boleh tukar dalam Tetapan
+const DEFAULT_PASSWORDS = {
+  'coordinator': 'ipc2025',
+  'Surgical':    'surgical2025',
+  'OMFS':        'omfs2025',
+  'Orthopaedic': 'ortho2025',
+  'O&G':         'ong2025',
+};
+
+function getPasswords(){
+  const saved = localStorage.getItem('ssi_passwords');
+  return saved ? JSON.parse(saved) : {...DEFAULT_PASSWORDS};
+}
+
+function getCurrentUser(){
+  try{ return JSON.parse(sessionStorage.getItem('ssi_user'))||null; }
+  catch(e){ return null; }
+}
+
+function setCurrentUser(role, dept){
+  sessionStorage.setItem('ssi_user', JSON.stringify({role, dept, loginAt: new Date().toISOString()}));
+}
+
+function isCoordinator(){ const u=getCurrentUser(); return u&&u.role==='coordinator'; }
+function getUserDept(){ const u=getCurrentUser(); return u?.dept||''; }
+
+function doLogin(){
+  const dept = document.getElementById('loginDept').value;
+  const pass = document.getElementById('loginPass').value;
+  const errEl = document.getElementById('loginErr');
+  errEl.style.display='none';
+
+  if(!dept){ errEl.textContent='Sila pilih jabatan/role.'; errEl.style.display='block'; return; }
+  if(!pass){ errEl.textContent='Sila masukkan kata laluan.'; errEl.style.display='block'; return; }
+
+  const passwords = getPasswords();
+  if(passwords[dept] !== pass){
+    errEl.textContent='Kata laluan salah. Cuba lagi.';
+    errEl.style.display='block';
+    document.getElementById('loginPass').value='';
+    return;
+  }
+
+  // Login success
+  const role = dept==='coordinator' ? 'coordinator' : 'dept';
+  const deptName = dept==='coordinator' ? 'Coordinator' : dept;
+  setCurrentUser(role, deptName);
+  applyUserAccess();
+  document.getElementById('loginScreen').style.display='none';
+  document.getElementById('appContent').style.display='block';
+  renderDashboard();
+  // Auto-retry unsynced cases after login
+  setTimeout(autoRetryOnLoad, 4000);
+}
+
+function applyUserAccess(){
+  const user = getCurrentUser();
+  if(!user) return;
+
+  // Update topbar
+  const isCoord = user.role==='coordinator';
+  const avatar = document.getElementById('userAvatar');
+  const label = document.getElementById('userLabel');
+  if(avatar){
+    avatar.textContent = user.dept.substring(0,2).toUpperCase();
+    avatar.className = 'user-avatar '+(isCoord?'role-coord':'role-dept');
+  }
+  if(label) label.textContent = user.dept;
+
+  // Lock dept dropdown in entry form to user dept
+  if(!isCoord){
+    const fd = document.getElementById('f_dept');
+    if(fd){
+      // Set to user dept and disable
+      Array.from(fd.options).forEach(o=>{ if(o.value===user.dept) o.selected=true; });
+      fd.disabled=true;
+      fd.style.background='#f5f5f5';
+      fd.style.color='var(--muted)';
+    }
+  }
+
+  // Show/hide Tetapan tab — coordinator only
+  const settingsTab=document.getElementById('settingsTab');
+  if(settingsTab) settingsTab.style.display=isCoord?'':'none';
+  // Refresh dept dropdowns after login — important for coordinator
+  syncDeptDropdowns();
+  renderSurgTypeDropdown();
+  renderSettingsAccess();
+}
+
+function confirmLogout(){
+  if(confirm('Log keluar dari SSI Tracker?')){
+    sessionStorage.removeItem('ssi_user');
+    location.reload();
+  }
+}
+
+// Filter cases by user dept
+function getCasesForUser(){
+  const all = getCases();
+  if(isCoordinator()) return all;
+  const dept = getUserDept();
+  return all.filter(c=>c.dept===dept);
+}
+
+// ═══════════ INIT ═══════════
+document.addEventListener('DOMContentLoaded',()=>{
+  syncDeptDropdowns();
+  renderSurgTypeDropdown();
+
+  // Populate login dropdown with saved depts
+  const loginSel=document.getElementById('loginDept');
+  if(loginSel){
+    const savedDepts=getDepts();
+    const defaultRoles=['coordinator','Surgical','OMFS','Orthopaedic','O&G'];
+    savedDepts.forEach(d=>{
+      if(!defaultRoles.includes(d)){
+        const opt=document.createElement('option');
+        opt.value=d; opt.textContent='🏥 '+d;
+        loginSel.appendChild(opt);
+      }
+    });
+  }
+
+  const yr=new Date().getFullYear().toString();
+  const dy=document.getElementById('dashYear');
+  if(dy){
+    dy.value=yr;
+    // Kalau tahun semasa tiada dalam dropdown, tambah
+    if(!Array.from(dy.options).find(o=>o.value===yr)){
+      const opt=document.createElement('option');
+      opt.value=yr; opt.textContent=yr; dy.appendChild(opt);
+    }
+    dy.value=yr;
+  }
+  document.getElementById('yrBadge').textContent=yr;
+
+  const user = getCurrentUser();
+  if(user){
+    applyUserAccess();
+    document.getElementById('loginScreen').style.display='none';
+    document.getElementById('appContent').style.display='block';
+    renderDashboard();
+    setTimeout(autoRetryOnLoad, 3000);
+  }
+  // Auto-connect Sheets — URL sudah hardcoded
+  document.getElementById('sheetsBadge').textContent='🟢 Sheets';
+  document.getElementById('sheetsBadge').classList.add('connected');
+  const urlEl=document.getElementById('scriptUrl');
+  if(urlEl) urlEl.value=getUrl();
+});
+</script>
+</div><!-- /appContent -->
+</body>
+</html>
