@@ -331,6 +331,30 @@ tr:hover td{background:#f9fefe;}
     <div class="stat green"><div class="stat-v" id="ds-depts">0</div><div class="stat-l" id="ds-depts-label">Departments Monitored</div></div>
   </div>
 
+  <!-- CDC Benchmark Reference -->
+  <div style="background:var(--card);border:1px solid var(--border);border-radius:8px;padding:10px 14px;margin-bottom:10px;">
+    <div style="font-size:.7rem;font-weight:700;color:var(--muted);letter-spacing:.5px;margin-bottom:7px;">📋 CDC/NHSN BENCHMARK — SSI RATE BY WOUND CLASS</div>
+    <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:6px;">
+      <div style="background:#e8f5e9;border-left:3px solid #27ae60;border-radius:4px;padding:6px 8px;">
+        <div style="font-size:.65rem;font-weight:700;color:#27ae60;">CLEAN (C)</div>
+        <div style="font-size:.88rem;font-weight:700;color:#1a6b35;">1–5%</div>
+      </div>
+      <div style="background:#fff8e1;border-left:3px solid #f39c12;border-radius:4px;padding:6px 8px;">
+        <div style="font-size:.65rem;font-weight:700;color:#d68910;">CLEAN-CONTAMINATED (CC)</div>
+        <div style="font-size:.88rem;font-weight:700;color:#9a6706;">3–11%</div>
+      </div>
+      <div style="background:#fff3e0;border-left:3px solid #e67e22;border-radius:4px;padding:6px 8px;">
+        <div style="font-size:.65rem;font-weight:700;color:#ca6f1e;">CONTAMINATED (CO)</div>
+        <div style="font-size:.88rem;font-weight:700;color:#a04000;">10–17%</div>
+      </div>
+      <div style="background:#fdecea;border-left:3px solid #c0392b;border-radius:4px;padding:6px 8px;">
+        <div style="font-size:.65rem;font-weight:700;color:#c0392b;">DIRTY/INFECTED (D)</div>
+        <div style="font-size:.88rem;font-weight:700;color:#922b21;">&gt;27%</div>
+      </div>
+    </div>
+    <div style="font-size:.6rem;color:var(--muted);margin-top:5px;">Sources: CDC/NHSN (StatPearls 2023), ACS-NSQIP 2005 — SSI rate by wound class sahaja.</div>
+  </div>
+
   <!-- Coordinator: 2 bar charts | Dept user: monitored case list -->
   <div id="coordCharts" style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
     <div class="card">
@@ -703,23 +727,6 @@ tr:hover td{background:#f9fefe;}
           </div>
         </div>
 
-        <!-- READMISSION -->
-        <div style="border:1px solid #ddd;margin-bottom:8px;font-size:.78rem;">
-          <div style="display:grid;grid-template-columns:1fr 1fr;">
-            <div style="padding:6px 8px;border-right:1px solid #ddd;">
-              <div style="font-size:.68rem;color:var(--muted);margin-bottom:3px;">IS PATIENT READMITTED?</div>
-              <div class="chk-grp">
-                <label class="chk-item"><input type="radio" name="su_readmit_yn" value="YES" onchange="toggleReadmitDate()"> Ya</label>
-                <label class="chk-item"><input type="radio" name="su_readmit_yn" value="NO" onchange="toggleReadmitDate()"> Tidak</label>
-              </div>
-            </div>
-            <div style="padding:6px 8px;" id="readmitDateWrap">
-              <div style="font-size:.68rem;color:var(--muted);margin-bottom:3px;">DATE OF READMISSION</div>
-              <input type="date" id="su_readmit" style="width:100%;border:1px solid var(--border);border-radius:5px;padding:4px 7px;font-size:.78rem;">
-            </div>
-          </div>
-        </div>
-
         <!-- SURGERY INFO -->
         <div style="border:1px solid #ddd;margin-bottom:8px;font-size:.78rem;">
           <div style="display:grid;grid-template-columns:1fr 1fr 1fr;">
@@ -809,6 +816,27 @@ tr:hover td{background:#f9fefe;}
             <label style="color:#8e44ad;">Catatan / Management</label>
             <textarea id="su_notes" rows="2" placeholder="Tindakan, rawatan, atau maklumat tambahan..."></textarea>
           </div>
+
+          <!-- READMISSION — diisi bila SSI disahkan -->
+          <div style="border:1px solid #c39bd3;border-radius:6px;margin-top:10px;overflow:hidden;">
+            <div style="background:#8e44ad;color:#fff;padding:5px 10px;font-size:.7rem;font-weight:700;letter-spacing:.5px;">
+              IS PATIENT ADMITTED FOR SSI?
+            </div>
+            <div style="display:grid;grid-template-columns:1fr 1fr;font-size:.78rem;">
+              <div style="padding:8px 10px;border-right:1px solid #ddd;">
+                <div style="font-size:.68rem;color:var(--muted);margin-bottom:4px;">READMISSION STATUS</div>
+                <div class="chk-grp">
+                  <label class="chk-item"><input type="radio" name="su_readmit_yn" value="YES" onchange="toggleReadmitDate()"> Yes</label>
+                  <label class="chk-item"><input type="radio" name="su_readmit_yn" value="NO" onchange="toggleReadmitDate()"> No</label>
+                </div>
+              </div>
+              <div style="padding:8px 10px;" id="readmitDateWrap">
+                <div style="font-size:.68rem;color:var(--muted);margin-bottom:4px;">DATE OF READMISSION</div>
+                <input type="date" id="su_readmit" style="width:100%;border:1px solid var(--border);border-radius:5px;padding:4px 7px;font-size:.78rem;">
+              </div>
+            </div>
+          </div>
+
         </div>
 
         <div id="su_msg" style="font-size:.76rem;margin-top:4px;"></div>
@@ -1631,6 +1659,15 @@ function renderDashboard(){
   // Left chart — coordinator: SSI Rate by Department | dept user: Total Surgery by Surgery type
   const db=document.getElementById('deptBars');
   const leftTitle=document.getElementById('leftChartTitle');
+
+  // CDC benchmark helper
+  function cdcBenchmark(rate){
+    if(rate<=5) return {label:'Within C benchmark (≤5%)',color:'#27ae60'};
+    if(rate<=11) return {label:'Within CC benchmark (≤11%)',color:'#f39c12'};
+    if(rate<=17) return {label:'Within CO benchmark (≤17%)',color:'#e67e22'};
+    return {label:'Exceeds D benchmark (>27%)',color:'#c0392b'};
+  }
+
   if(coord){
     // Coordinator — SSI Rate mengikut Department
     if(leftTitle) leftTitle.textContent='SSI Rate by Department';
@@ -1647,13 +1684,16 @@ function renderDashboard(){
         const col=x.rate>5?'#c0392b':x.rate>2?'#e67e22':'#27ae60';
         const w=Math.max((x.rate/mx)*100,x.rate>0?4:0);
         const lbl=x.d.length>14?x.d.substring(0,12)+'\u2026':x.d;
+        const bm=cdcBenchmark(x.rate);
         return'<div class="brow"><div class="blbl" title="'+esc(x.d)+'">'+esc(lbl)+'</div>'
           +'<div class="btrack"><div class="bfill" style="width:'+w+'%;background:'+col+';">'
           +(x.rate>0?'<span class="bval">'+x.rate+'%</span>':'')
-          +'</div></div><span style="font-size:.68rem;color:var(--muted);min-width:38px;">'+x.ssi+'/'+x.total+'</span></div>';
+          +'</div></div>'
+          +'<span style="font-size:.68rem;color:var(--muted);min-width:38px;">'+x.ssi+'/'+x.total+'</span>'
+          +'<span style="font-size:.6rem;color:'+bm.color+';min-width:80px;padding-left:4px;" title="CDC Benchmark">'+bm.label+'</span>'
+          +'</div>';
       }).join('');
     }
-  } else {
     // Dept user — Total Surgery dipantau mengikut jenis surgery (semua, termasuk 0)
     if(leftTitle) leftTitle.textContent='Total Surgery Monitored by Type';
     const surgTypes2=getSurgTypes().filter(t=>!t.dept||t.dept===userDept);
@@ -1697,10 +1737,13 @@ function renderDashboard(){
       const lbl=x.sp.length>14?x.sp.substring(0,12)+'…':x.sp;
       const rateStr=x.rate.toFixed(1)+'%';
       const color=x.rate>5?'#c0392b':x.rate>2?'#e67e22':'#8e44ad';
+      const bm=cdcBenchmark(x.rate);
       return'<div class="brow"><div class="blbl" title="'+esc(x.sp)+'">'+esc(lbl)+'</div>'
         +'<div class="btrack"><div class="bfill" style="width:'+w+'%;background:'+color+';">'
         +'<span class="bval">'+rateStr+' ('+x.totalSSI+'/'+x.totalSurg+')</span>'
-        +'</div></div></div>';
+        +'</div></div>'
+        +'<span style="font-size:.6rem;color:'+bm.color+';min-width:80px;padding-left:4px;" title="CDC Benchmark">'+bm.label+'</span>'
+        +'</div>';
     }).join('');
   }
 
